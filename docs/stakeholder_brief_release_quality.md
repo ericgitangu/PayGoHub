@@ -22,9 +22,9 @@
 | CI/CD Setup | [qa.wiki/guides/ci](https://git.plugintheworld.com/db-dev/qa/-/wikis/guides/ci/ci-cd-setup) |
 | Moto API | [db-dev/moto](https://git.plugintheworld.com/db-dev/moto) |
 | QA Dashboard | [github.com/ericgitangu/engie-powerhub-qa](https://github.com/ericgitangu/engie-powerhub-qa) |
-| **M-Services CI Templates** | [db-dev/qa/m-services-ci](https://git.plugintheworld.com/db-dev/qa/-/tree/qa_uat/m-services-ci) |
-| **PayGoHub PoC (GitLab)** | [db-dev/qa/paygohub](https://git.plugintheworld.com/db-dev/qa/-/tree/qa_uat/paygohub) |
-| **PayGoHub PoC (GitHub)** | [github.com/ericgitangu/PayGoHub](https://github.com/ericgitangu/PayGoHub) |
+| **M-Services CI Templates** | [github.com/ericgitangu/m-services-ci](https://github.com/ericgitangu/m-services-ci) |
+| **PayGoHub PoC** | [github.com/ericgitangu/PayGoHub](https://github.com/ericgitangu/PayGoHub) |
+| **GitLab Submodules** | [db-dev/qa (qa_uat branch)](https://git.plugintheworld.com/db-dev/qa/-/tree/qa_uat) |
 | **PayGoHub Live** | [paygohub-web-qa.fly.dev](https://paygohub-web-qa.fly.dev) |
 | **PayGoHub API Docs** | [paygohub-web-qa.fly.dev/api-docs](https://paygohub-web-qa.fly.dev/api-docs) |
 | **PayGoHub OpenAPI (GitHub)** | [github.com/ericgitangu/PayGoHub/docs/api](https://github.com/ericgitangu/PayGoHub/blob/master/docs/api/paygohub-openapi.yml) |
@@ -228,7 +228,7 @@ The M-Services ecosystem consists of four interconnected Ruby on Rails applicati
 
 Centralized CI/CD templates for Ruby on Rails m-services have been created and are ready for deployment.
 
-**Repository:** [db-dev/qa/m-services-ci](https://git.plugintheworld.com/db-dev/qa/-/tree/qa_uat/m-services-ci)
+**Repository:** [github.com/ericgitangu/m-services-ci](https://github.com/ericgitangu/m-services-ci)
 
 **Implemented Templates:**
 
