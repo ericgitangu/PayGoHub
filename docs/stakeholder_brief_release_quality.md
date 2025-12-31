@@ -26,7 +26,8 @@
 | **PayGoHub PoC (GitLab)** | [db-dev/qa/paygohub](https://git.plugintheworld.com/db-dev/qa/-/tree/qa_uat/paygohub) |
 | **PayGoHub PoC (GitHub)** | [github.com/ericgitangu/PayGoHub](https://github.com/ericgitangu/PayGoHub) |
 | **PayGoHub Live** | [paygohub-web-qa.fly.dev](https://paygohub-web-qa.fly.dev) |
-| **PayGoHub OpenAPI** | [docs/api/paygohub-openapi.yml](https://git.plugintheworld.com/db-dev/qa/-/blob/qa_uat/paygohub/docs/api/paygohub-openapi.yml) |
+| **PayGoHub API Docs** | [paygohub-web-qa.fly.dev/api-docs](https://paygohub-web-qa.fly.dev/api-docs) |
+| **PayGoHub OpenAPI (GitHub)** | [github.com/ericgitangu/PayGoHub/docs/api](https://github.com/ericgitangu/PayGoHub/blob/main/docs/api/paygohub-openapi.yml) |
 
 ---
 

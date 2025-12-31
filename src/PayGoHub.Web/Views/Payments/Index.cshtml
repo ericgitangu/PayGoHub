@@ -1,13 +1,52 @@
-@model IEnumerable<PaymentDto>
+@using PayGoHub.Application.Common
+@model PaginatedList<PaymentDto>
 @{
     ViewData["Title"] = "Payments";
-    ViewData["ActivePage"] = "Payments";
+    var currentSearch = ViewData["CurrentSearch"]?.ToString();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="mb-1">Payments</h4>
         <p class="text-muted mb-0">View all payment transactions</p>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-3">
+        <form asp-action="Index" method="get" class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control bg-light border-start-0"
+                           placeholder="Search by reference, customer, amount..." value="@currentSearch">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="pageSize" class="form-select" onchange="this.form.submit()">
+                    <option value="10" selected="@(Model.PageSize == 10)">10 per page</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25 per page</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50 per page</option>
+                    <option value="100" selected="@(Model.PageSize == 100)">100 per page</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(currentSearch))
+            {
+                <div class="col-md-2">
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-lg me-1"></i> Clear
+                    </a>
+                </div>
+            }
+        </form>
     </div>
 </div>
 
@@ -18,6 +57,7 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="border-0 ps-4">Customer</th>
+                        <th class="border-0">Reference</th>
                         <th class="border-0">Amount</th>
                         <th class="border-0">Method</th>
                         <th class="border-0">Status</th>
@@ -25,25 +65,88 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var payment in Model)
+                    @if (!Model.Items.Any())
                     {
                         <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-sm bg-primary-subtle text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        @payment.CustomerInitials
-                                    </div>
-                                    <p class="mb-0 fw-medium">@payment.CustomerName</p>
-                                </div>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-credit-card display-4 mb-3 d-block"></i>
+                                @if (!string.IsNullOrEmpty(currentSearch))
+                                {
+                                    <p class="mb-0">No payments found matching "@currentSearch"</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0">No payments recorded yet</p>
+                                }
                             </td>
-                            <td class="fw-semibold">KES @payment.Amount.ToString("N0")</td>
-                            <td><span class="badge bg-@(payment.Method == "Mpesa" ? "success" : "primary")-subtle text-@(payment.Method == "Mpesa" ? "success" : "primary")">@payment.Method</span></td>
-                            <td><span class="badge bg-@payment.StatusClass">@payment.Status</span></td>
-                            <td class="pe-4 text-muted">@payment.TimeAgo</td>
                         </tr>
+                    }
+                    else
+                    {
+                        @foreach (var payment in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary-subtle text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            @payment.CustomerInitials
+                                        </div>
+                                        <p class="mb-0 fw-medium">@payment.CustomerName</p>
+                                    </div>
+                                </td>
+                                <td><code>@payment.Reference</code></td>
+                                <td class="fw-semibold text-success">KES @payment.Amount.ToString("N0")</td>
+                                <td><span class="badge bg-@(payment.Method == "Mpesa" ? "success" : "primary")-subtle text-@(payment.Method == "Mpesa" ? "success" : "primary")">@payment.Method</span></td>
+                                <td><span class="badge bg-@payment.StatusClass">@payment.Status</span></td>
+                                <td class="pe-4 text-muted">@payment.TimeAgo</td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing @Model.FirstItemIndex to @Model.LastItemIndex of @Model.TotalCount payments
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@(Model.PageNumber - 1)"
+                               asp-route-pageSize="@Model.PageSize" asp-route-search="@currentSearch">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @foreach (var pageNum in Model.GetPageNumbers())
+                        {
+                            <li class="page-item @(pageNum == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" asp-action="Index" asp-route-page="@pageNum"
+                                   asp-route-pageSize="@Model.PageSize" asp-route-search="@currentSearch">
+                                    @pageNum
+                                </a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@(Model.PageNumber + 1)"
+                               asp-route-pageSize="@Model.PageSize" asp-route-search="@currentSearch">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+        else if (Model.Items.Any())
+        {
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing all @Model.TotalCount payment(s)
+                </div>
+            </div>
+        }
     </div>
 </div>

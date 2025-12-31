@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PayGoHub.Application.Common;
 using PayGoHub.Application.DTOs;
 using PayGoHub.Application.Interfaces;
 
@@ -7,16 +8,32 @@ namespace PayGoHub.Web.Controllers;
 public class CustomersController : Controller
 {
     private readonly ICustomerService _customerService;
+    private const int DefaultPageSize = 10;
 
     public CustomersController(ICustomerService customerService)
     {
         _customerService = customerService;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1, int pageSize = DefaultPageSize, string? search = null)
     {
-        var customers = await _customerService.GetAllAsync();
-        return View(customers);
+        ViewData["ActivePage"] = "Customers";
+        ViewData["CurrentSearch"] = search;
+
+        var allCustomers = await _customerService.GetAllAsync();
+
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            allCustomers = allCustomers.Where(c =>
+                (c.FirstName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.LastName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.Email?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (c.PhoneNumber?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        var paginatedList = PaginatedList<CustomerDto>.Create(allCustomers, page, pageSize);
+        return View(paginatedList);
     }
 
     public async Task<IActionResult> Details(Guid id)

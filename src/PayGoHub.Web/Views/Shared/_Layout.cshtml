@@ -94,12 +94,17 @@
                 </button>
 
                 <div class="d-none d-md-block">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0">
-                            <i class="bi bi-search text-muted"></i>
-                        </span>
-                        <input type="text" class="form-control bg-light border-start-0" placeholder="Search customers, payments, devices..." style="min-width: 300px;">
-                    </div>
+                    <form asp-controller="Search" asp-action="Index" method="get" class="m-0">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" name="q" id="globalSearch" class="form-control bg-light border-start-0"
+                                   placeholder="Search customers, payments, devices..." style="min-width: 300px;"
+                                   autocomplete="off">
+                            <div id="searchResults" class="search-dropdown"></div>
+                        </div>
+                    </form>
                 </div>
 
                 <ul class="navbar-nav ms-auto align-items-center">
@@ -124,14 +129,43 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                             <div class="avatar me-2">
-                                <img id="userAvatar" src="https://ui-avatars.com/api/?name=Eric+Gitangu&background=3b82f6&color=fff"
-                                     alt="Profile" class="profile-avatar"
-                                     onerror="this.style.display='none'; document.getElementById('avatarFallback').style.display='flex';">
-                                <div id="avatarFallback" class="avatar-initials bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; display: none;">
-                                    EG
-                                </div>
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    var picture = User.FindFirst("picture")?.Value;
+                                    var name = User.Identity.Name ?? "User";
+                                    var initials = string.Join("", name.Split(' ').Take(2).Select(n => n.FirstOrDefault().ToString().ToUpper()));
+                                    if (!string.IsNullOrEmpty(picture))
+                                    {
+                                        <img id="userAvatar" src="@picture" alt="Profile" class="profile-avatar rounded-circle" style="width: 36px; height: 36px;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="avatar-initials bg-primary text-white rounded-circle d-none align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                            @initials
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="avatar-initials bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 14px; font-weight: 600;">
+                                            @initials
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <img src="~/images/logo.png" alt="PayGoHub" class="rounded-circle" style="width: 36px; height: 36px; object-fit: cover;"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <div class="avatar-initials bg-primary text-white rounded-circle d-none align-items-center justify-content-center" style="width: 36px; height: 36px; font-size: 14px; font-weight: 600;">
+                                        PH
+                                    </div>
+                                }
                             </div>
-                            <span class="d-none d-md-inline">Eric Gitangu</span>
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <span class="d-none d-md-inline">@User.Identity.Name</span>
+                            }
+                            else
+                            {
+                                <span class="d-none d-md-inline">PayGoHub</span>
+                            }
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i> Profile</a></li>

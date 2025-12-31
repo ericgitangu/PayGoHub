@@ -303,9 +303,10 @@ window.PayGoHub = {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize Theme and Notifications
+    // Initialize Theme, Notifications, and Search
     ThemeManager.init();
     NotificationManager.init();
+    SearchManager.init();
 
     // Sidebar Toggle
     const sidebarToggle = document.getElementById('sidebarToggle');
@@ -404,6 +405,150 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log('PayGoHub Dashboard initialized with theme and notifications support');
 });
+
+// Search Manager
+const SearchManager = {
+    searchInput: null,
+    searchDropdown: null,
+    debounceTimer: null,
+    currentQuery: '',
+
+    init() {
+        this.searchInput = document.getElementById('globalSearch');
+        this.searchDropdown = document.getElementById('searchResults');
+
+        if (this.searchInput && this.searchDropdown) {
+            this.setupEventListeners();
+        }
+    },
+
+    setupEventListeners() {
+        // Handle input with debounce
+        this.searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            this.currentQuery = query;
+
+            if (this.debounceTimer) {
+                clearTimeout(this.debounceTimer);
+            }
+
+            if (query.length < 2) {
+                this.hideDropdown();
+                return;
+            }
+
+            this.debounceTimer = setTimeout(() => {
+                this.performSearch(query);
+            }, 300);
+        });
+
+        // Handle focus
+        this.searchInput.addEventListener('focus', () => {
+            if (this.currentQuery.length >= 2) {
+                this.showDropdown();
+            }
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!this.searchInput.contains(e.target) && !this.searchDropdown.contains(e.target)) {
+                this.hideDropdown();
+            }
+        });
+
+        // Handle keyboard navigation
+        this.searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.hideDropdown();
+                this.searchInput.blur();
+            }
+        });
+    },
+
+    async performSearch(query) {
+        this.showLoading();
+
+        try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (data.query !== this.currentQuery) {
+                return; // Stale response
+            }
+
+            this.renderResults(data.results, query);
+        } catch (error) {
+            console.error('Search error:', error);
+            this.showError();
+        }
+    },
+
+    showLoading() {
+        this.searchDropdown.innerHTML = `
+            <div class="search-loading">
+                <i class="bi bi-arrow-repeat spin"></i> Searching...
+            </div>
+        `;
+        this.showDropdown();
+    },
+
+    showError() {
+        this.searchDropdown.innerHTML = `
+            <div class="search-no-results">
+                <i class="bi bi-exclamation-circle"></i> Error searching. Please try again.
+            </div>
+        `;
+    },
+
+    renderResults(results, query) {
+        if (results.length === 0) {
+            this.searchDropdown.innerHTML = `
+                <div class="search-no-results">
+                    <i class="bi bi-search mb-2" style="font-size: 1.5rem; display: block;"></i>
+                    No results found for "${query}"
+                </div>
+            `;
+            this.showDropdown();
+            return;
+        }
+
+        const html = results.map(result => `
+            <a href="${result.url}" class="search-result-item">
+                <div class="search-result-icon ${result.type}">
+                    <i class="bi ${result.icon}"></i>
+                </div>
+                <div class="search-result-content">
+                    <div class="search-result-title">${this.highlightMatch(result.title, query)}</div>
+                    <div class="search-result-subtitle">${result.subtitle || ''}</div>
+                </div>
+                <span class="search-result-type">${result.type}</span>
+            </a>
+        `).join('');
+
+        const viewAllLink = `
+            <a href="/Search?q=${encodeURIComponent(query)}" class="search-view-all">
+                View all results <i class="bi bi-arrow-right"></i>
+            </a>
+        `;
+
+        this.searchDropdown.innerHTML = html + viewAllLink;
+        this.showDropdown();
+    },
+
+    highlightMatch(text, query) {
+        if (!text) return '';
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<mark>$1</mark>');
+    },
+
+    showDropdown() {
+        this.searchDropdown.classList.add('show');
+    },
+
+    hideDropdown() {
+        this.searchDropdown.classList.remove('show');
+    }
+};
 
 // User authentication management
 async function fetchUserInfo() {

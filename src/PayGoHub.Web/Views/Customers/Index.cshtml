@@ -1,7 +1,8 @@
-@model IEnumerable<CustomerDto>
+@using PayGoHub.Application.Common
+@model PaginatedList<CustomerDto>
 @{
     ViewData["Title"] = "Customers";
-    ViewData["ActivePage"] = "Customers";
+    var currentSearch = ViewData["CurrentSearch"]?.ToString();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -22,6 +23,44 @@
     </div>
 }
 
+<!-- Search and Filter Bar -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-3">
+        <form asp-action="Index" method="get" class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control bg-light border-start-0"
+                           placeholder="Search by name, email, phone..." value="@currentSearch">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="pageSize" class="form-select" onchange="this.form.submit()">
+                    <option value="10" selected="@(Model.PageSize == 10)">10 per page</option>
+                    <option value="25" selected="@(Model.PageSize == 25)">25 per page</option>
+                    <option value="50" selected="@(Model.PageSize == 50)">50 per page</option>
+                    <option value="100" selected="@(Model.PageSize == 100)">100 per page</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(currentSearch))
+            {
+                <div class="col-md-2">
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-x-lg me-1"></i> Clear
+                    </a>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -37,47 +76,109 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var customer in Model)
+                    @if (!Model.Items.Any())
                     {
                         <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-sm bg-primary-subtle text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        @(customer.FirstName.Substring(0, 1))@(customer.LastName.Substring(0, 1))
-                                    </div>
-                                    <div>
-                                        <p class="mb-0 fw-medium">@customer.FullName</p>
-                                        <small class="text-muted">@customer.Email</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>@customer.PhoneNumber</td>
-                            <td>@customer.Region</td>
-                            <td><span class="badge bg-@customer.StatusClass">@customer.Status</span></td>
-                            <td>
-                                <span class="fw-semibold">@customer.TotalPayments</span>
-                                <small class="text-muted">(KES @customer.TotalPaid.ToString("N0"))</small>
-                            </td>
-                            <td class="pe-4">
-                                <div class="btn-group btn-group-sm">
-                                    <a asp-action="Details" asp-route-id="@customer.Id" class="btn btn-outline-secondary">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-outline-secondary">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form asp-action="Delete" asp-route-id="@customer.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this customer?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-people display-4 mb-3 d-block"></i>
+                                @if (!string.IsNullOrEmpty(currentSearch))
+                                {
+                                    <p class="mb-0">No customers found matching "@currentSearch"</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0">No customers yet. <a asp-action="Create">Add your first customer</a></p>
+                                }
                             </td>
                         </tr>
+                    }
+                    else
+                    {
+                        @foreach (var customer in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-primary-subtle text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            @(customer.FirstName?.FirstOrDefault())@(customer.LastName?.FirstOrDefault())
+                                        </div>
+                                        <div>
+                                            <p class="mb-0 fw-medium">@customer.FullName</p>
+                                            <small class="text-muted">@customer.Email</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@customer.PhoneNumber</td>
+                                <td>@customer.Region</td>
+                                <td><span class="badge bg-@customer.StatusClass">@customer.Status</span></td>
+                                <td>
+                                    <span class="fw-semibold">@customer.TotalPayments</span>
+                                    <small class="text-muted">(KES @customer.TotalPaid.ToString("N0"))</small>
+                                </td>
+                                <td class="pe-4">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="Details" asp-route-id="@customer.Id" class="btn btn-outline-secondary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@customer.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this customer?');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing @Model.FirstItemIndex to @Model.LastItemIndex of @Model.TotalCount customers
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@(Model.PageNumber - 1)"
+                               asp-route-pageSize="@Model.PageSize" asp-route-search="@currentSearch">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @foreach (var pageNum in Model.GetPageNumbers())
+                        {
+                            <li class="page-item @(pageNum == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" asp-action="Index" asp-route-page="@pageNum"
+                                   asp-route-pageSize="@Model.PageSize" asp-route-search="@currentSearch">
+                                    @pageNum
+                                </a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-action="Index" asp-route-page="@(Model.PageNumber + 1)"
+                               asp-route-pageSize="@Model.PageSize" asp-route-search="@currentSearch">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+        else if (Model.Items.Any())
+        {
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    Showing all @Model.TotalCount customer(s)
+                </div>
+            </div>
+        }
     </div>
 </div>

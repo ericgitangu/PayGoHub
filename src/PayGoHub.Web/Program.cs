@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using PayGoHub.Application.Interfaces;
 using PayGoHub.Infrastructure.Data;
 using PayGoHub.Infrastructure.Seed;
@@ -8,6 +10,14 @@ using PayGoHub.Infrastructure.Services;
 using PayGoHub.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure forwarded headers for Fly.io proxy (MUST be before other middleware)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Load environment variables from .env file
 var envPath = Path.Combine(builder.Environment.ContentRootPath, ".env");
@@ -87,6 +97,48 @@ builder.Services.AddHttpClient("M2MCallback", client =>
 // Add MVC and API controllers
 builder.Services.AddControllersWithViews();
 
+// Add Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "PayGoHub API",
+        Version = "v1",
+        Description = "PayGoHub - M-Services Integration Backend for Solarium\n\n" +
+                      "Provides endpoints for MoMo payments, M2M device commands, and token generation.",
+        Contact = new OpenApiContact
+        {
+            Name = "PayGoHub Team",
+            Email = "dev@plugintheworld.com"
+        }
+    });
+
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Description = "API Key for authentication. Use 'API-KEY' or 'X-API-Key' header.",
+        Name = "X-API-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "ApiKeyScheme"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
 var app = builder.Build();
 
 // Apply migrations and seed data
@@ -107,6 +159,18 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Configure the HTTP request pipeline.
+// MUST be first - handle forwarded headers from Fly.io proxy
+app.UseForwardedHeaders();
+
+// Enable Swagger in all environments for API documentation
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "PayGoHub API v1");
+    options.RoutePrefix = "api-docs";
+    options.DocumentTitle = "PayGoHub API Documentation";
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
