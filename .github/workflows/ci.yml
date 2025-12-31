@@ -66,12 +66,14 @@ jobs:
           ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=paygohub_test;Username=paygohub;Password=paygohub123"
 
       - name: Install ReportGenerator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Generate HTML Coverage Report
         if: always()
         run: |
-          reportgenerator \
+          ~/.dotnet/tools/reportgenerator \
             -reports:"**/TestResults/**/coverage.cobertura.xml" \
             -targetdir:"TestResults/CoverageReport" \
             -reporttypes:"Html;HtmlSummary;Badges;TextSummary" \
