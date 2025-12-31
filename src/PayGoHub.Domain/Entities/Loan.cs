@@ -11,6 +11,7 @@ public class Loan : BaseEntity
     public DateTime IssuedDate { get; set; }
     public DateTime DueDate { get; set; }
     public decimal RemainingBalance { get; set; }
+    public string Currency { get; set; } = "KES";
     public string? Notes { get; set; }
 
     // Navigation property

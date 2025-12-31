@@ -1,6 +1,312 @@
 // PayGoHub Dashboard JavaScript
 
+// Theme Management
+const ThemeManager = {
+    STORAGE_KEY: 'paygohub-theme',
+
+    init() {
+        this.applyStoredTheme();
+        this.setupThemeToggle();
+        this.listenForSystemChanges();
+    },
+
+    getStoredTheme() {
+        return localStorage.getItem(this.STORAGE_KEY) || 'system';
+    },
+
+    setTheme(theme) {
+        localStorage.setItem(this.STORAGE_KEY, theme);
+        this.applyTheme(theme);
+        this.updateToggleIcon(theme);
+    },
+
+    applyTheme(theme) {
+        const root = document.documentElement;
+
+        if (theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        } else {
+            root.setAttribute('data-theme', theme);
+        }
+    },
+
+    applyStoredTheme() {
+        const theme = this.getStoredTheme();
+        this.applyTheme(theme);
+    },
+
+    setupThemeToggle() {
+        const toggle = document.getElementById('themeToggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                const current = this.getStoredTheme();
+                const themes = ['light', 'dark', 'system'];
+                const nextIndex = (themes.indexOf(current) + 1) % themes.length;
+                this.setTheme(themes[nextIndex]);
+            });
+            this.updateToggleIcon(this.getStoredTheme());
+        }
+    },
+
+    updateToggleIcon(theme) {
+        const toggle = document.getElementById('themeToggle');
+        if (!toggle) return;
+
+        const icons = {
+            light: 'bi-sun-fill',
+            dark: 'bi-moon-fill',
+            system: 'bi-circle-half'
+        };
+
+        const icon = toggle.querySelector('.theme-icon');
+        if (icon) {
+            icon.className = `bi ${icons[theme]} theme-icon`;
+        }
+    },
+
+    listenForSystemChanges() {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (this.getStoredTheme() === 'system') {
+                this.applyTheme('system');
+            }
+        });
+    }
+};
+
+// Notification Manager
+const NotificationManager = {
+    notifications: [],
+    unreadCount: 0,
+
+    init() {
+        this.loadFromStorage();
+        this.setupEventListeners();
+        this.updateBadge();
+    },
+
+    loadFromStorage() {
+        const stored = localStorage.getItem('paygohub-notifications');
+        if (stored) {
+            this.notifications = JSON.parse(stored);
+            this.unreadCount = this.notifications.filter(n => !n.read).length;
+        }
+    },
+
+    saveToStorage() {
+        localStorage.setItem('paygohub-notifications', JSON.stringify(this.notifications));
+    },
+
+    add(notification) {
+        const newNotification = {
+            id: Date.now(),
+            ...notification,
+            timestamp: new Date().toISOString(),
+            read: false
+        };
+
+        this.notifications.unshift(newNotification);
+        if (this.notifications.length > 50) {
+            this.notifications = this.notifications.slice(0, 50);
+        }
+
+        this.unreadCount++;
+        this.updateBadge();
+        this.saveToStorage();
+        this.renderNotifications();
+        this.showToast(newNotification);
+    },
+
+    markAsRead(id) {
+        const notification = this.notifications.find(n => n.id === id);
+        if (notification && !notification.read) {
+            notification.read = true;
+            this.unreadCount = Math.max(0, this.unreadCount - 1);
+            this.updateBadge();
+            this.saveToStorage();
+        }
+    },
+
+    markAllAsRead() {
+        this.notifications.forEach(n => n.read = true);
+        this.unreadCount = 0;
+        this.updateBadge();
+        this.saveToStorage();
+        this.renderNotifications();
+    },
+
+    clear() {
+        this.notifications = [];
+        this.unreadCount = 0;
+        this.updateBadge();
+        this.saveToStorage();
+        this.renderNotifications();
+    },
+
+    updateBadge() {
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            if (this.unreadCount > 0) {
+                badge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
+                badge.style.display = 'inline-flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    },
+
+    setupEventListeners() {
+        const bellBtn = document.getElementById('notificationBell');
+        const panel = document.getElementById('notificationPanel');
+        const markAllBtn = document.getElementById('markAllRead');
+        const clearAllBtn = document.getElementById('clearAllNotifications');
+
+        if (bellBtn && panel) {
+            bellBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                panel.classList.toggle('show');
+                if (panel.classList.contains('show')) {
+                    this.renderNotifications();
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!panel.contains(e.target) && !bellBtn.contains(e.target)) {
+                    panel.classList.remove('show');
+                }
+            });
+        }
+
+        if (markAllBtn) {
+            markAllBtn.addEventListener('click', () => this.markAllAsRead());
+        }
+
+        if (clearAllBtn) {
+            clearAllBtn.addEventListener('click', () => this.clear());
+        }
+    },
+
+    renderNotifications() {
+        const list = document.getElementById('notificationList');
+        if (!list) return;
+
+        if (this.notifications.length === 0) {
+            list.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-bell-slash fs-1 mb-2"></i>
+                    <p class="mb-0">No notifications</p>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = this.notifications.map(n => `
+            <div class="notification-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
+                <div class="notification-icon ${n.type || 'info'}">
+                    <i class="bi ${this.getIcon(n.type)}"></i>
+                </div>
+                <div class="notification-content">
+                    <div class="notification-title">${n.title}</div>
+                    <div class="notification-message">${n.message}</div>
+                    <div class="notification-time">${this.formatTime(n.timestamp)}</div>
+                </div>
+            </div>
+        `).join('');
+
+        list.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', () => {
+                this.markAsRead(parseInt(item.dataset.id));
+                item.classList.remove('unread');
+            });
+        });
+    },
+
+    getIcon(type) {
+        const icons = {
+            success: 'bi-check-circle-fill',
+            error: 'bi-x-circle-fill',
+            warning: 'bi-exclamation-triangle-fill',
+            info: 'bi-info-circle-fill'
+        };
+        return icons[type] || icons.info;
+    },
+
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = (now - date) / 1000;
+
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return date.toLocaleDateString();
+    },
+
+    showToast(notification) {
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${this.getBootstrapColor(notification.type)} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${notification.title}</strong>: ${notification.message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            container.style.zIndex = '1100';
+            document.body.appendChild(container);
+        }
+
+        container.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+        bsToast.show();
+
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    },
+
+    getBootstrapColor(type) {
+        const colors = {
+            success: 'success',
+            error: 'danger',
+            warning: 'warning',
+            info: 'primary'
+        };
+        return colors[type] || 'primary';
+    }
+};
+
+// API Notification Helper - Call this after API operations
+window.PayGoHub = {
+    notify: function(title, message, type = 'info') {
+        NotificationManager.add({ title, message, type });
+    },
+
+    notifySuccess: function(title, message) {
+        this.notify(title, message, 'success');
+    },
+
+    notifyError: function(title, message) {
+        this.notify(title, message, 'error');
+    },
+
+    notifyWarning: function(title, message) {
+        this.notify(title, message, 'warning');
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize Theme and Notifications
+    ThemeManager.init();
+    NotificationManager.init();
+
     // Sidebar Toggle
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
@@ -93,5 +399,5 @@ document.addEventListener('DOMContentLoaded', function () {
         row.style.cursor = 'pointer';
     });
 
-    console.log('PayGoHub Dashboard initialized');
+    console.log('PayGoHub Dashboard initialized with theme and notifications support');
 });

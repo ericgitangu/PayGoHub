@@ -11,6 +11,8 @@ public class Customer : BaseEntity
     public string Region { get; set; } = string.Empty;
     public string District { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
+    public string Country { get; set; } = "KE";
+    public string Currency { get; set; } = "KES";
     public CustomerStatus Status { get; set; } = CustomerStatus.Active;
 
     public string FullName => $"{FirstName} {LastName}";

@@ -1,0 +1,276 @@
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h4 class="fw-bold mb-0">Settings</h4>
+            <p class="text-muted mb-0">Customize your PayGoHub experience</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Appearance Settings -->
+        <div class="col-lg-6 mb-4">
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h5 class="settings-section-title">
+                        <i class="bi bi-palette me-2"></i>Appearance
+                    </h5>
+                    <p class="text-muted small mb-3">Choose how PayGoHub looks to you</p>
+
+                    <div class="row g-3" id="themeOptions">
+                        <div class="col-md-4">
+                            <div class="theme-option" data-theme="light" onclick="setThemePreference('light')">
+                                <div class="theme-preview theme-preview-light"></div>
+                                <div>
+                                    <div class="fw-semibold"><i class="bi bi-sun-fill me-1"></i> Light</div>
+                                    <small class="text-muted">Always light mode</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="theme-option" data-theme="dark" onclick="setThemePreference('dark')">
+                                <div class="theme-preview theme-preview-dark"></div>
+                                <div>
+                                    <div class="fw-semibold"><i class="bi bi-moon-fill me-1"></i> Dark</div>
+                                    <small class="text-muted">Always dark mode</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="theme-option" data-theme="system" onclick="setThemePreference('system')">
+                                <div class="theme-preview theme-preview-system"></div>
+                                <div>
+                                    <div class="fw-semibold"><i class="bi bi-circle-half me-1"></i> System</div>
+                                    <small class="text-muted">Match system</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Settings -->
+        <div class="col-lg-6 mb-4">
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h5 class="settings-section-title">
+                        <i class="bi bi-person-circle me-2"></i>Profile
+                    </h5>
+                    <p class="text-muted small mb-3">Manage your account information</p>
+
+                    <div class="d-flex align-items-center mb-4">
+                        <img id="settingsAvatar" src="https://ui-avatars.com/api/?name=Eric+Gitangu&background=3b82f6&color=fff&size=100"
+                             alt="Profile" class="profile-avatar-large me-4">
+                        <div>
+                            <h6 class="mb-1">Eric Gitangu</h6>
+                            <p class="text-muted mb-2">QA Lead</p>
+                            <button class="btn btn-outline-primary btn-sm" id="googleSignInBtn">
+                                <i class="bi bi-google me-1"></i> Connect Google Account
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-control" value="Eric Gitangu" id="displayName">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" value="eric.gitangu@example.com" id="userEmail">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="col-lg-6 mb-4">
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h5 class="settings-section-title">
+                        <i class="bi bi-bell me-2"></i>Notifications
+                    </h5>
+                    <p class="text-muted small mb-3">Configure how you receive notifications</p>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyPayments" checked>
+                        <label class="form-check-label" for="notifyPayments">
+                            Payment Confirmations
+                            <small class="d-block text-muted">Get notified when MoMo payments are confirmed</small>
+                        </label>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyTokens" checked>
+                        <label class="form-check-label" for="notifyTokens">
+                            Token Generation
+                            <small class="d-block text-muted">Get notified when device tokens are generated</small>
+                        </label>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyM2M" checked>
+                        <label class="form-check-label" for="notifyM2M">
+                            M2M Commands
+                            <small class="d-block text-muted">Get notified about device command status</small>
+                        </label>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyErrors" checked>
+                        <label class="form-check-label" for="notifyErrors">
+                            Error Alerts
+                            <small class="d-block text-muted">Get notified when API errors occur</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Market Configuration -->
+        <div class="col-lg-6 mb-4">
+            <div class="settings-card">
+                <div class="settings-section">
+                    <h5 class="settings-section-title">
+                        <i class="bi bi-globe me-2"></i>Markets
+                    </h5>
+                    <p class="text-muted small mb-3">Active production markets</p>
+
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇺🇬</span>
+                                <span>Uganda</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇧🇯</span>
+                                <span>Benin</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇨🇮</span>
+                                <span>Ivory Coast</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇲🇿</span>
+                                <span>Mozambique</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇳🇬</span>
+                                <span>Nigeria</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇿🇲</span>
+                                <span>Zambia</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇰🇪</span>
+                                <span>Mobisol (KE/TZ)</span>
+                            </div>
+                            <span class="badge bg-success">Active</span>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">🇷🇼</span>
+                                <span>Rwanda</span>
+                            </div>
+                            <span class="badge bg-warning">Pending</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <button class="btn btn-primary" onclick="saveSettings()">
+                <i class="bi bi-check2 me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Theme preference management
+    function setThemePreference(theme) {
+        localStorage.setItem('paygohub-theme', theme);
+        applyTheme(theme);
+        updateThemeOptions();
+    }
+
+    function applyTheme(theme) {
+        const root = document.documentElement;
+        if (theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+        } else {
+            root.setAttribute('data-theme', theme);
+        }
+    }
+
+    function updateThemeOptions() {
+        const currentTheme = localStorage.getItem('paygohub-theme') || 'system';
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.classList.toggle('active', option.dataset.theme === currentTheme);
+        });
+    }
+
+    // Initialize theme options on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateThemeOptions();
+
+        // Load notification preferences
+        const notificationSettings = JSON.parse(localStorage.getItem('paygohub-notification-settings') || '{}');
+        document.getElementById('notifyPayments').checked = notificationSettings.payments !== false;
+        document.getElementById('notifyTokens').checked = notificationSettings.tokens !== false;
+        document.getElementById('notifyM2M').checked = notificationSettings.m2m !== false;
+        document.getElementById('notifyErrors').checked = notificationSettings.errors !== false;
+    });
+
+    function saveSettings() {
+        // Save notification preferences
+        const notificationSettings = {
+            payments: document.getElementById('notifyPayments').checked,
+            tokens: document.getElementById('notifyTokens').checked,
+            m2m: document.getElementById('notifyM2M').checked,
+            errors: document.getElementById('notifyErrors').checked
+        };
+        localStorage.setItem('paygohub-notification-settings', JSON.stringify(notificationSettings));
+
+        // Show success notification
+        if (window.PayGoHub) {
+            window.PayGoHub.notifySuccess('Settings Saved', 'Your preferences have been updated');
+        }
+    }
+
+    // Google Sign-In placeholder
+    document.getElementById('googleSignInBtn').addEventListener('click', function() {
+        if (window.PayGoHub) {
+            window.PayGoHub.notify('Google Sign-In', 'Google OAuth integration coming soon', 'info');
+        }
+    });
+</script>
+}

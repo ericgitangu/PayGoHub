@@ -11,6 +11,7 @@ public class Payment : BaseEntity
     public PaymentMethod Method { get; set; } = PaymentMethod.Mpesa;
     public string? TransactionReference { get; set; }
     public string? MpesaReceiptNumber { get; set; }
+    public string? ProviderKey { get; set; }
     public DateTime? PaidAt { get; set; }
 
     // Navigation property

@@ -10,6 +10,7 @@ public class Device : BaseEntity
     public Guid? InstallationId { get; set; }
     public int BatteryHealth { get; set; } = 100;
     public DateTime? LastSyncDate { get; set; }
+    public string Country { get; set; } = "KE";
 
     // Navigation property
     public virtual Installation? Installation { get; set; }
