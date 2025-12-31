@@ -2,7 +2,7 @@
 # Deploy with: fly deploy
 # Database: fly postgres create --name paygohub-db
 
-app = 'paygohub-web'
+app = 'paygohub-web-qa'
 primary_region = 'jnb'  # Johannesburg, South Africa (closest to Kenya)
 
 [build]

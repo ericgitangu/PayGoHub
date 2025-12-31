@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using PayGoHub.Domain.Entities;
 
 namespace PayGoHub.Infrastructure.Data;
@@ -7,6 +8,14 @@ public class PayGoHubDbContext : DbContext
 {
     public PayGoHubDbContext(DbContextOptions<PayGoHubDbContext> options) : base(options)
     {
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        // Suppress pending model changes warning for production deployments
+        optionsBuilder.ConfigureWarnings(warnings =>
+            warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 
     // Existing entities

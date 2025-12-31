@@ -1,4 +1,5 @@
 # Release Quality & Testing Framework
+
 ## Stakeholder Brief for Engineering Leadership
 
 **Document Type:** Foundational Technical Brief
@@ -48,7 +49,7 @@ This document addresses the QA infrastructure supporting the **pilot migration f
 
 ### Quality Score (0-100)
 
-```
+```css
 Score = 100 - (Fatal × 15) - (Error × 3) - (Warn × 0.5) - (BugEscapes × 5) + Bonus
 ```
 
@@ -61,7 +62,9 @@ Score = 100 - (Fatal × 15) - (Error × 3) - (Warn × 0.5) - (BugEscapes × 5) +
 | < 60 | F | Block release |
 
 ### Bug Escapes
+
 Errors that automated tests should have caught:
+
 - `NoMethodError`, `TypeError`, `ArgumentError`
 - `ActiveRecord::RecordInvalid`
 - `ActionController::ParameterMissing`
@@ -175,7 +178,69 @@ graph TB
 
 ---
 
-## Part 5: M-Services Migration Testing
+## Part 5: M-Services Integration & Testing
+
+### M-Services Overview
+
+The M-Services ecosystem consists of four interconnected Ruby on Rails applications that handle device management, payments, and notifications:
+
+| Service | Purpose | Production Status | QA Testing Status |
+|---------|---------|-------------------|-------------------|
+| **moto** | Token generation for device unlock | ✅ Production | ⚠️ Unit tests in PoC |
+| **m2m** | Machine-to-machine device commands | ✅ Production | ⚠️ Unit tests in PoC |
+| **momoep** | Mobile money payment processing | ✅ Production | ⚠️ Unit tests in PoC |
+| **mega** | SMS/notification delivery | ⚠️ Pending | ❌ Not tested |
+
+### PayGoHub: Proof of Concept for M-Services Integration
+
+> **IMPORTANT:** PayGoHub is a **Proof of Concept (PoC)** implementation in .NET 10.0 designed to understand and prototype the m-services integration patterns before extending the existing Ruby on Rails infrastructure.
+
+**PoC Purpose:**
+- Validate API contracts between Solarium and M-Services
+- Prototype payment validation and token generation flows
+- Test idempotency and error handling patterns
+- Explore .NET as potential future infrastructure
+
+**PoC Implementation Status:**
+
+| Component | Implementation | Status |
+|-----------|----------------|--------|
+| MoMo Payment Validation | POST `/api/payment/validate` | ✅ Implemented |
+| MoMo Payment Confirmation | POST `/api/payment/confirm` | ✅ Implemented |
+| M2M Command Dispatch | POST `/api/m2m/command` | ✅ Implemented |
+| Token Generation (Stateless) | POST `/api/tokens/stateless/generate` | ✅ Implemented |
+| Token Generation (Stateful) | POST `/api/tokens/generate` | ✅ Implemented |
+| API Key Authentication | Middleware | ✅ Implemented |
+| Idempotency Handling | Duplicate detection | ✅ Implemented |
+
+**PoC Deployment:** [paygohub-web-qa.fly.dev](https://paygohub-web-qa.fly.dev)
+
+### Centralized CI/CD Pipeline for M-Services
+
+> **STATUS: NOT IMPLEMENTED**
+
+The plan included creating a centralized CI/CD pipeline for Ruby on Rails m-services with shared templates. **This has not been implemented yet.**
+
+**Planned (Not Implemented):**
+
+```
+m-services-ci/
+  templates/
+    stages.yml           # Stage definitions
+    rails-base.yml       # Ruby/Rails common setup
+    security.yml         # Security scanning (brakeman, bundler_audit, rubocop)
+    build.yml            # Kaniko Docker builds
+    deploy.yml           # Helm K8s deployment
+    e2e.yml              # E2E test templates
+    quality-metrics.yml  # QA metrics collection
+    market-matrix.yml    # 8-market configuration
+```
+
+**Recommended Next Steps:**
+1. Create `infrastructure/m-services-ci` repository in GitLab
+2. Extract common CI patterns from existing `.gitlab-ci.yml` files
+3. Implement shared templates for Rails testing, security scanning, and deployment
+4. Add quality gate integration with release quality scoring
 
 ### Device Testing in Uganda
 
@@ -208,24 +273,45 @@ sequenceDiagram
 | Impact | Sequence counter incremented incorrectly |
 | Action | Add ownership validation to [Moto](https://git.plugintheworld.com/db-dev/moto) |
 
-### .NET Backend Tests (16/16 Passing)
+### .NET Backend Tests (PayGoHub PoC) - 16/16 Passing
 
 > **Source:** [github.com/ericgitangu/PayGoHub](https://github.com/ericgitangu/PayGoHub)
 
 **MomoPaymentServiceTests (8):**
+
 - Provider/currency/amount validation
 - Customer lookup (phone/serial/ID)
 - Duplicate detection (idempotency)
 
 **TokenGenerationServiceTests (8):**
+
 - Stateless/stateful generation
 - Token determinism
 - Sequence management
 
-**Pending:**
-- [ ] Device ownership validation
-- [ ] End-to-end MOTO integration
-- [ ] Mega SMS delivery
+### PH (PowerHub) <> Solarium Integration Checklist
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Device m2m migration | ✅ Success | |
+| Stateless token Moto code to prod | ✅ Success | |
+| m2m API functionality to Prod | ✅ Success | |
+| Mega Integration | ❌ **Pending** | SMS delivery not tested |
+| Acquire solrm api keys | ✅ Success | |
+| Share New Serials/Device Secrets | ⚠️ Pending | |
+| Post production token acceptance test | ⚠️ Pending | |
+
+### Action Items - M-Services Testing
+
+**Immediate (Rwanda Release Jan 3-5, 2026):**
+- [ ] Complete Mega SMS integration testing
+- [ ] Device ownership validation in Moto
+- [ ] End-to-end integration testing for payment flow
+
+**Post-Release:**
+- [ ] Implement centralized CI/CD templates for m-services
+- [ ] Extend release quality system for Ruby on Rails services
+- [ ] Create market-specific E2E testing for m-services
 
 ---
 
@@ -235,7 +321,7 @@ sequenceDiagram
 
 ### GitLab Pipeline (42 Jobs)
 
-```
+```yaml
 Markets: uganda, benin, ivorycoast, mozambique, nigeria, zambia, mobisol
 Types: smoke, fast, incremental, regression, k6, visual
 Jobs: 7 × 6 = 42
@@ -243,7 +329,7 @@ Jobs: 7 × 6 = 42
 
 ### Auto-Trigger Flow
 
-```
+```yaml
 Code Merge → Helm Deploy → E2E Tests (5 min) → Pass/Fail → Issue
 ```
 
@@ -258,7 +344,18 @@ Code Merge → Helm Deploy → E2E Tests (5 min) → Pass/Fail → Issue
 | **Measure release quality** | ✅ Ready | [compare_releases.rb](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
 | **Measure performance** | ✅ Ready | [K6 Load Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/performance-testing) |
 | **Solid automation testing** | ✅ Ready | [986 E2E scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) |
-| **M-services testing** | ⚠️ In Progress | Unit tests done, ownership pending |
+| **M-services testing** | ⚠️ In Progress | PayGoHub PoC (16/16 tests), Mega pending |
+| **Centralized M-Services CI/CD** | ❌ Not Started | See Part 5 for planned approach |
+
+### M-Services Reality Check
+
+| Service | What's Done | What's Pending |
+|---------|-------------|----------------|
+| **moto** | Unit tests in PoC | E2E integration, ownership validation |
+| **m2m** | Unit tests in PoC | E2E integration |
+| **momoep** | Unit tests in PoC | E2E integration |
+| **mega** | Nothing | Full integration testing |
+| **CI/CD Templates** | Nothing | Create m-services-ci repository |
 
 ### Business Impact
 
@@ -287,6 +384,7 @@ Code Merge → Helm Deploy → E2E Tests (5 min) → Pass/Fail → Issue
 **Document Version:** 3.0
 **Last Updated:** December 31, 2025
 **References:**
+
 - [PowerHub E2E Testing Infrastructure (Dec 17, 2025)](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf)
 - [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md)
 - [QA Wiki](https://git.plugintheworld.com/db-dev/qa/-/wikis)

@@ -1,0 +1,948 @@
+openapi: 3.0.3
+info:
+  title: PayGoHub API
+  description: |
+    PayGoHub - Proof of Concept for M-Services Integration with Solarium
+
+    This API provides endpoints for:
+    - MoMo Payment validation and confirmation (MOMOEP integration)
+    - M2M Device commands (M2M integration)
+    - Token generation (Moto integration)
+    - Customer and payment management
+
+    ## Authentication
+
+    API endpoints use API-KEY authentication via headers:
+    - `API-KEY`: For MoMo payment endpoints (Solarium compatibility)
+    - `X-API-Key`: For M2M and Token endpoints
+
+    ## Markets Supported
+
+    | Market | Currency | Provider |
+    |--------|----------|----------|
+    | Kenya (KE) | KES | ke_safaricom_mpesa |
+    | Uganda (UG) | UGX | ug_mtn_mobilemoney |
+    | Rwanda (RW) | RWF | rw_mtn_mobilemoney |
+    | Tanzania (TZ) | TZS | tz_vodacom_mpesa |
+    | Nigeria (NG) | NGN | ng_mtn_mobilemoney |
+    | Zambia (ZM) | ZMW | zm_mtn_mobilemoney |
+    | Benin (BJ) | XOF | bj_mtn_mobilemoney |
+    | Ivory Coast (CI) | XOF | ci_mtn_mobilemoney |
+    | Mozambique (MZ) | MZN | mz_vodacom_mpesa |
+
+  version: 1.0.0
+  contact:
+    name: PayGoHub Team
+    email: dev@plugintheworld.com
+  license:
+    name: Proprietary
+    url: https://plugintheworld.com
+
+servers:
+  - url: https://paygohub-web-qa.fly.dev
+    description: QA/Staging (Fly.io)
+  - url: http://localhost:5000
+    description: Local Development
+
+tags:
+  - name: MoMo Payments
+    description: Mobile Money payment validation and confirmation
+  - name: M2M Commands
+    description: Machine-to-machine device command management
+  - name: Tokens
+    description: Device token generation (stateless and stateful)
+  - name: Customers
+    description: Customer management
+  - name: Payments
+    description: Payment records management
+  - name: System
+    description: Health checks and system status
+
+paths:
+  # ============================================================================
+  # MoMo Payment Endpoints (Solarium Integration)
+  # ============================================================================
+  /api/payment/validate:
+    post:
+      summary: Validate payment account
+      description: |
+        Validates a customer account/reference before processing a payment.
+        Called by MoMo service during the payment initiation flow.
+
+        Returns customer information if valid, or an error status if invalid.
+      operationId: validatePayment
+      tags:
+        - MoMo Payments
+      security:
+        - ApiKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentValidationRequest'
+            examples:
+              kenya:
+                summary: Kenya M-Pesa validation
+                value:
+                  reference: "254543"
+                  currency: "KES"
+                  business_account: "544544"
+                  provider_key: "ke_safaricom_mpesa"
+                  amount_subunit: 20000
+                  additional_fields: ["customer_name"]
+              uganda:
+                summary: Uganda MTN MoMo validation
+                value:
+                  reference: "ACC-UG-001"
+                  currency: "UGX"
+                  business_account: "solarium"
+                  provider_key: "ug_mtn_mobilemoney"
+                  amount_subunit: 50000
+                  additional_fields: ["customer_name"]
+      responses:
+        '200':
+          description: Validation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentValidationResponse'
+              examples:
+                success:
+                  value:
+                    status: "ok"
+                    customer_name: "John Doe"
+        '404':
+          description: Reference not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentValidationResponse'
+              example:
+                status: "reference_not_found"
+        '412':
+          description: Amount validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentValidationResponse'
+              examples:
+                too_low:
+                  value:
+                    status: "amount_too_low"
+                too_high:
+                  value:
+                    status: "amount_too_high"
+        '401':
+          description: Missing or invalid API-KEY
+
+  /api/payment/confirm:
+    post:
+      summary: Confirm payment
+      description: |
+        Confirms a completed payment from the MoMo provider.
+        Called after the provider successfully debits the customer.
+
+        Uses `provider_tx` + `momoep_id` for idempotency - duplicate
+        confirmations return 409 Conflict.
+      operationId: confirmPayment
+      tags:
+        - MoMo Payments
+      security:
+        - ApiKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentConfirmationRequest'
+            examples:
+              mpesa:
+                summary: M-Pesa payment confirmation
+                value:
+                  reference: "254543"
+                  amount_subunit: 20000
+                  currency: "KES"
+                  sender_phone_number: "254727123123"
+                  provider_tx: "WG53SJ8284"
+                  provider_name: "Safaricom"
+                  provider_brand: "M-PESA"
+                  provider_country: "KE"
+                  provider_humanized: "Safaricom M-PESA KE"
+                  provider_key: "ke_safaricom_mpesa"
+                  received_at: "2025-12-31T10:00:00.000Z"
+                  momoep_id: "25346"
+                  business_account: "544544"
+      responses:
+        '200':
+          description: Payment confirmed successfully
+        '409':
+          description: Duplicate payment (already processed)
+        '400':
+          description: Invalid request
+        '401':
+          description: Missing or invalid API-KEY
+
+  # ============================================================================
+  # M2M Command Endpoints
+  # ============================================================================
+  /api/m2m/command:
+    post:
+      summary: Create device command
+      description: |
+        Creates a command to be sent to a device.
+        Commands are queued and sent when the device next connects.
+
+        Supported commands:
+        - `unlock_token`: Send unlock code to device
+        - `sync`: Force device synchronization
+        - `synciv`: Sync with IV update
+        - `reset`: Reset device
+        - `useracct`: User account update
+      operationId: createCommand
+      tags:
+        - M2M Commands
+      security:
+        - XApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandCreateRequest'
+            examples:
+              unlockToken:
+                summary: Unlock token command
+                value:
+                  identifier:
+                    kind: "serial"
+                    value: "SCBLNX/A/BT/240300126005"
+                  callback_url: "https://solarium.api/callbacks/m2m"
+                  command:
+                    name: "unlock_token"
+                    details:
+                      unlock_code: "1234567890"
+              sync:
+                summary: Sync command
+                value:
+                  identifier:
+                    kind: "imei"
+                    value: "123456789012345"
+                  command:
+                    name: "sync"
+                    details: {}
+      responses:
+        '201':
+          description: Command created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandCreateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid API key
+        '409':
+          description: Duplicate command (idempotency conflict)
+
+  /api/m2m/callback:
+    post:
+      summary: M2M command callback
+      description: |
+        Receives callbacks from M2M service when commands are executed.
+        Called by M2M after device acknowledges the command.
+      operationId: m2mCallback
+      tags:
+        - M2M Commands
+      security:
+        - XApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandCallbackRequest'
+      responses:
+        '200':
+          description: Callback processed
+        '400':
+          description: Invalid callback payload
+
+  # ============================================================================
+  # Token Endpoints (Moto Integration)
+  # ============================================================================
+  /api/tokens/stateless/generate:
+    post:
+      summary: Generate stateless token
+      description: |
+        Generates a stateless unlock token for a device.
+        No state is stored - the token is calculated based on device serial and time.
+      operationId: generateStatelessToken
+      tags:
+        - Tokens
+      security:
+        - XApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatelessTokenRequest'
+            examples:
+              thirtyDays:
+                summary: 30-day token
+                value:
+                  serial_number: "SCBLNX/A/BT/240300126005"
+                  days: 30
+                  hours: 0
+              customDuration:
+                summary: Custom duration
+                value:
+                  serial_number: "SCBLNX/A/BT/240300126005"
+                  days: 7
+                  hours: 12
+      responses:
+        '200':
+          description: Token generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                token: "1234567890123456"
+                serial_number: "SCBLNX/A/BT/240300126005"
+                days: 30
+                hours: 0
+                expires_at: "2026-01-30T10:00:00Z"
+        '400':
+          description: Invalid request
+        '401':
+          description: Missing or invalid API key
+        '404':
+          description: Device not found
+
+  /api/tokens/generate:
+    post:
+      summary: Generate stateful token
+      description: |
+        Generates a stateful token that is tracked in the database.
+        Use this when you need to track token usage and expiration.
+      operationId: generateStatefulToken
+      tags:
+        - Tokens
+      security:
+        - XApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatefulTokenRequest'
+      responses:
+        '200':
+          description: Token generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Missing or invalid API key
+
+  # ============================================================================
+  # Customer Endpoints
+  # ============================================================================
+  /api/customers:
+    get:
+      summary: List customers
+      description: Retrieve a paginated list of customers
+      operationId: listCustomers
+      tags:
+        - Customers
+      security:
+        - XApiKey: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: region
+          in: query
+          schema:
+            type: string
+          description: Filter by region
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended]
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerListResponse'
+
+    post:
+      summary: Create customer
+      operationId: createCustomer
+      tags:
+        - Customers
+      security:
+        - XApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: Invalid request
+
+  /api/customers/{id}:
+    get:
+      summary: Get customer by ID
+      operationId: getCustomer
+      tags:
+        - Customers
+      security:
+        - XApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          description: Customer not found
+
+  # ============================================================================
+  # Payment Record Endpoints
+  # ============================================================================
+  /api/payments:
+    get:
+      summary: List payments
+      operationId: listPayments
+      tags:
+        - Payments
+      security:
+        - XApiKey: []
+      parameters:
+        - name: customerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed, refunded]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentListResponse'
+
+  /api/payments/{id}:
+    get:
+      summary: Get payment by ID
+      operationId: getPayment
+      tags:
+        - Payments
+      security:
+        - XApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment not found
+
+  # ============================================================================
+  # System Endpoints
+  # ============================================================================
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  /api/status:
+    get:
+      summary: API status
+      description: Get detailed API status including database connectivity
+      operationId: apiStatus
+      tags:
+        - System
+      responses:
+        '200':
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  database:
+                    type: string
+                  uptime:
+                    type: string
+
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: API-KEY
+      description: API key for MoMo payment endpoints (Solarium compatibility)
+    XApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for M2M and Token endpoints
+
+  schemas:
+    # ========== MoMo Payment Schemas ==========
+    PaymentValidationRequest:
+      type: object
+      required:
+        - reference
+        - currency
+        - provider_key
+      properties:
+        reference:
+          type: string
+          description: Customer account/reference number
+          example: "254543"
+        currency:
+          type: string
+          description: ISO 4217 currency code
+          example: "KES"
+        business_account:
+          type: string
+          description: Target business account
+          example: "544544"
+        provider_key:
+          type: string
+          description: Provider identifier (country_company_brand)
+          example: "ke_safaricom_mpesa"
+        amount_subunit:
+          type: integer
+          description: Amount in smallest currency unit (cents)
+          example: 20000
+        additional_fields:
+          type: array
+          items:
+            type: string
+          description: Additional fields to return
+          example: ["customer_name"]
+
+    PaymentValidationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, reference_not_found, amount_too_low, amount_too_high]
+          example: "ok"
+        customer_name:
+          type: string
+          description: Customer name (if requested)
+          example: "John Doe"
+
+    PaymentConfirmationRequest:
+      type: object
+      required:
+        - reference
+        - amount_subunit
+        - currency
+        - sender_phone_number
+        - provider_tx
+        - provider_key
+        - momoep_id
+      properties:
+        reference:
+          type: string
+          example: "254543"
+        amount_subunit:
+          type: integer
+          example: 20000
+        currency:
+          type: string
+          example: "KES"
+        sender_phone_number:
+          type: string
+          description: E.164 format without plus
+          example: "254727123123"
+        provider_tx:
+          type: string
+          description: Provider transaction reference
+          example: "WG53SJ8284"
+        provider_name:
+          type: string
+          example: "Safaricom"
+        provider_brand:
+          type: string
+          example: "M-PESA"
+        provider_country:
+          type: string
+          example: "KE"
+        provider_humanized:
+          type: string
+          example: "Safaricom M-PESA KE"
+        provider_key:
+          type: string
+          example: "ke_safaricom_mpesa"
+        received_at:
+          type: string
+          format: date-time
+        momoep_id:
+          type: string
+          description: MoMo database ID
+          example: "25346"
+        business_account:
+          type: string
+          example: "544544"
+        secondary_provider_tx:
+          type: string
+        transaction_at:
+          type: string
+          format: date-time
+        sender_name:
+          type: string
+        transaction_kind:
+          type: string
+
+    # ========== M2M Command Schemas ==========
+    CommandCreateRequest:
+      type: object
+      required:
+        - identifier
+        - command
+      properties:
+        identifier:
+          $ref: '#/components/schemas/DeviceIdentifier'
+        callback_url:
+          type: string
+          format: uri
+        command:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              enum: [unlock_token, sync, synciv, reset, useracct]
+            details:
+              type: object
+              additionalProperties: true
+
+    DeviceIdentifier:
+      type: object
+      required:
+        - kind
+        - value
+      properties:
+        kind:
+          type: string
+          enum: [imei, serial]
+        value:
+          type: string
+
+    CommandCreateResponse:
+      type: object
+      properties:
+        identifier:
+          type: string
+        command:
+          type: string
+          description: Command string sent to device
+        status:
+          type: string
+          example: "waiting"
+        created_at:
+          type: string
+          format: date-time
+
+    CommandCallbackRequest:
+      type: object
+      properties:
+        command_id:
+          type: string
+        status:
+          type: string
+          enum: [executed, failed, expired]
+        executed_at:
+          type: string
+          format: date-time
+        error_message:
+          type: string
+
+    # ========== Token Schemas ==========
+    StatelessTokenRequest:
+      type: object
+      required:
+        - serial_number
+        - days
+      properties:
+        serial_number:
+          type: string
+          description: Device serial number
+          example: "SCBLNX/A/BT/240300126005"
+        days:
+          type: integer
+          minimum: 0
+          maximum: 365
+          example: 30
+        hours:
+          type: integer
+          minimum: 0
+          maximum: 23
+          default: 0
+
+    StatefulTokenRequest:
+      type: object
+      required:
+        - device_id
+        - duration_days
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        duration_days:
+          type: integer
+        payment_id:
+          type: string
+          format: uuid
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: The unlock token
+          example: "1234567890123456"
+        serial_number:
+          type: string
+        days:
+          type: integer
+        hours:
+          type: integer
+        expires_at:
+          type: string
+          format: date-time
+
+    # ========== Customer Schemas ==========
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+        region:
+          type: string
+        district:
+          type: string
+        address:
+          type: string
+        country:
+          type: string
+          example: "KE"
+        currency:
+          type: string
+          example: "KES"
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateCustomerRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - phoneNumber
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+          maxLength: 20
+        region:
+          type: string
+        district:
+          type: string
+        address:
+          type: string
+        country:
+          type: string
+          default: "KE"
+        currency:
+          type: string
+          default: "KES"
+
+    CustomerListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ========== Payment Schemas ==========
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+        method:
+          type: string
+          enum: [mpesa, mtn_momo, cash, bank_transfer]
+        transactionReference:
+          type: string
+        mpesaReceiptNumber:
+          type: string
+        providerKey:
+          type: string
+        paidAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    # ========== Common Schemas ==========
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true

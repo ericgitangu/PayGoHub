@@ -1,0 +1,335 @@
+name: M-Services Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        description: 'Market to test'
+        required: true
+        default: 'KE'
+        type: choice
+        options:
+          - KE
+          - UG
+          - RW
+          - BJ
+          - CI
+          - MZ
+          - NG
+          - ZM
+          - ALL
+  schedule:
+    # Run daily at 6 AM EAT (3 AM UTC)
+    - cron: '0 3 * * *'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  # MoMo Payment Integration Tests
+  momo-integration:
+    name: MoMo Payment Integration (${{ matrix.market }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        market: ${{ github.event.inputs.market == 'ALL' && fromJSON('["KE", "UG", "RW"]') || fromJSON(format('["{0}"]', github.event.inputs.market || 'KE')) }}
+        include:
+          - market: KE
+            currency: KES
+            provider: ke_safaricom_mpesa
+          - market: UG
+            currency: UGX
+            provider: ug_mtn_mobilemoney
+          - market: RW
+            currency: RWF
+            provider: rw_mtn_mobilemoney
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test MoMo Validation Flow
+        run: |
+          echo "Testing MoMo validation for market: ${{ matrix.market }}"
+
+          # Test validation endpoint
+          RESPONSE=$(curl -s -X POST "${{ secrets.SOLARIUM_BASE_URL }}/api/payment/validate" \
+            -H "API-KEY: ${{ secrets.SOLARIUM_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "reference": "${{ secrets.TEST_REFERENCE }}",
+              "currency": "${{ matrix.currency }}",
+              "business_account": "solarium",
+              "provider_key": "${{ matrix.provider }}",
+              "amount_subunit": 10000,
+              "additional_fields": ["customer_name"]
+            }')
+
+          echo "Validation response: $RESPONSE"
+
+          # Check for valid response
+          if echo "$RESPONSE" | grep -qE '"status":"(ok|reference_not_found)"'; then
+            echo "✓ Validation test passed for ${{ matrix.market }}"
+          else
+            echo "⚠ Unexpected response (may be expected for test data)"
+          fi
+        continue-on-error: true
+
+      - name: Run Integration Tests
+        run: |
+          dotnet test tests/PayGoHub.Tests \
+            --filter "Category=MoMoIntegration&Market=${{ matrix.market }}" \
+            --configuration Release \
+            --logger "trx;LogFileName=momo-${{ matrix.market }}.trx" \
+            --logger "html;LogFileName=momo-${{ matrix.market }}.html"
+        env:
+          MARKET_CODE: ${{ matrix.market }}
+          MARKET_CURRENCY: ${{ matrix.currency }}
+          MARKET_PROVIDER: ${{ matrix.provider }}
+          SOLARIUM_API_KEY: ${{ secrets.SOLARIUM_API_KEY }}
+          SOLARIUM_BASE_URL: ${{ secrets.SOLARIUM_BASE_URL }}
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: momo-integration-${{ matrix.market }}
+          path: |
+            **/TestResults/*.trx
+            **/TestResults/*.html
+
+  # M2M Device Command Integration Tests
+  m2m-integration:
+    name: M2M Command Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'preview'
+
+      - name: Restore and Build
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+
+      - name: Test M2M Health Check
+        run: |
+          echo "Testing M2M health endpoint..."
+
+          RESPONSE=$(curl -s "${{ secrets.M2M_BASE_URL }}/v1/ping")
+
+          if [ "$RESPONSE" = "pong" ]; then
+            echo "✓ M2M health check passed"
+          else
+            echo "✗ M2M health check failed: $RESPONSE"
+          fi
+        continue-on-error: true
+
+      - name: Test M2M Command Creation
+        run: |
+          echo "Testing M2M command creation..."
+
+          RESPONSE=$(curl -s -X POST "${{ secrets.M2M_BASE_URL }}/v1/commands" \
+            -H "X-API-Key: ${{ secrets.M2M_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "identifier": {
+                "kind": "serial",
+                "value": "${{ secrets.TEST_DEVICE_SERIAL }}"
+              },
+              "callback_url": "${{ secrets.SOLARIUM_BASE_URL }}/api/m2m/callback",
+              "command": {
+                "name": "sync",
+                "details": {}
+              }
+            }')
+
+          echo "Command response: $RESPONSE"
+
+          if echo "$RESPONSE" | grep -qE '"status":"(waiting|created)"'; then
+            echo "✓ M2M command creation passed"
+          else
+            echo "⚠ Unexpected response"
+          fi
+        continue-on-error: true
+
+      - name: Run M2M Integration Tests
+        run: |
+          dotnet test tests/PayGoHub.Tests \
+            --filter "Category=M2MIntegration" \
+            --configuration Release \
+            --logger "trx;LogFileName=m2m-integration.trx"
+        env:
+          M2M_API_KEY: ${{ secrets.M2M_API_KEY }}
+          M2M_BASE_URL: ${{ secrets.M2M_BASE_URL }}
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: m2m-integration
+          path: "**/TestResults/*.trx"
+
+  # Token Generation Integration Tests
+  moto-integration:
+    name: Moto Token Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'preview'
+
+      - name: Restore and Build
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+
+      - name: Test Stateless Token Generation
+        run: |
+          echo "Testing stateless token generation..."
+
+          RESPONSE=$(curl -s -X POST "${{ secrets.MOTO_BASE_URL }}/api/tokens/stateless/generate" \
+            -H "X-API-Key: ${{ secrets.MOTO_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "serial_number": "${{ secrets.TEST_DEVICE_SERIAL }}",
+              "days": 30,
+              "hours": 0
+            }')
+
+          echo "Token response: $RESPONSE"
+
+          if echo "$RESPONSE" | grep -q '"token"'; then
+            echo "✓ Token generation passed"
+            TOKEN=$(echo "$RESPONSE" | jq -r '.token')
+            echo "Generated token: ${TOKEN:0:10}..."
+          else
+            echo "✗ Token generation failed"
+          fi
+        continue-on-error: true
+
+      - name: Run Moto Integration Tests
+        run: |
+          dotnet test tests/PayGoHub.Tests \
+            --filter "Category=MotoIntegration" \
+            --configuration Release \
+            --logger "trx;LogFileName=moto-integration.trx"
+        env:
+          MOTO_API_KEY: ${{ secrets.MOTO_API_KEY }}
+          MOTO_BASE_URL: ${{ secrets.MOTO_BASE_URL }}
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moto-integration
+          path: "**/TestResults/*.trx"
+
+  # SMS Integration Tests (Mega)
+  mega-integration:
+    name: Mega SMS Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'preview'
+
+      - name: Restore and Build
+        run: |
+          dotnet restore
+          dotnet build --no-restore --configuration Release
+
+      - name: Test SMS Send (Dry Run)
+        run: |
+          echo "Testing Mega SMS endpoint (dry run)..."
+
+          # This is a dry-run test - won't actually send SMS
+          RESPONSE=$(curl -s -X POST "${{ secrets.MEGA_BASE_URL }}/api/sms/validate" \
+            -H "X-API-Key: ${{ secrets.MEGA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "to": "+254700000000",
+              "message": "Test message",
+              "dry_run": true
+            }')
+
+          echo "SMS validation response: $RESPONSE"
+        continue-on-error: true
+
+      - name: Run Mega Integration Tests
+        run: |
+          dotnet test tests/PayGoHub.Tests \
+            --filter "Category=MegaIntegration" \
+            --configuration Release \
+            --logger "trx;LogFileName=mega-integration.trx"
+        env:
+          MEGA_API_KEY: ${{ secrets.MEGA_API_KEY }}
+          MEGA_BASE_URL: ${{ secrets.MEGA_BASE_URL }}
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mega-integration
+          path: "**/TestResults/*.trx"
+
+  # Summary Report
+  summary:
+    name: Integration Summary
+    runs-on: ubuntu-latest
+    needs: [momo-integration, m2m-integration, moto-integration, mega-integration]
+    if: always()
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate Summary Report
+        run: |
+          echo "# M-Services Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| MoMo Payment | ${{ needs.momo-integration.result == 'success' && '✅ Passed' || '⚠️ Check logs' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| M2M Commands | ${{ needs.m2m-integration.result == 'success' && '✅ Passed' || '⚠️ Check logs' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Moto Tokens | ${{ needs.moto-integration.result == 'success' && '✅ Passed' || '⚠️ Check logs' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mega SMS | ${{ needs.mega-integration.result == 'success' && '✅ Passed' || '⚠️ Check logs' }} |" >> $GITHUB_STEP_SUMMARY

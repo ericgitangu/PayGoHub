@@ -1,0 +1,357 @@
+openapi: 3.0.3
+info:
+  title: Mega SMS Gateway API
+  description: |
+    SMS Gateway API for sending and tracking SMS messages across multiple markets.
+    Used by Solarium for customer notifications (payment confirmations, token delivery, etc.)
+  version: 1.0.0
+  contact:
+    name: M-Services Team
+    email: mservices@plugintheworld.com
+
+servers:
+  - url: https://mega.plugintheworld.com
+    description: Production
+  - url: https://mega-staging.plugintheworld.com
+    description: Staging
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/sms/send:
+    post:
+      summary: Send SMS message
+      description: Queue an SMS message for delivery
+      operationId: sendSms
+      tags:
+        - SMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendSmsRequest'
+            examples:
+              basicSms:
+                summary: Basic SMS
+                value:
+                  to: "+254700123456"
+                  message: "Your payment of KES 1,000 has been received. Token: 1234567890"
+                  sender_id: "SOLARIUM"
+              withReference:
+                summary: SMS with reference
+                value:
+                  to: "+256700123456"
+                  message: "Your token is ready for collection."
+                  sender_id: "SOLARIUM"
+                  reference: "PAY-12345"
+                  callback_url: "https://solarium.api/sms/callback"
+      responses:
+        '200':
+          description: SMS queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendSmsResponse'
+              examples:
+                queued:
+                  value:
+                    message_id: "msg_abc123def456"
+                    status: "queued"
+                    to: "+254700123456"
+                    created_at: "2025-12-31T10:00:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidPhone:
+                  value:
+                    error: "invalid_phone_number"
+                    message: "Phone number format is invalid"
+        '401':
+          description: Unauthorized - Invalid or missing API key
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/sms/{message_id}/status:
+    get:
+      summary: Get SMS delivery status
+      description: Check the delivery status of a sent SMS
+      operationId: getSmsStatus
+      tags:
+        - SMS
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The message ID returned from send
+      responses:
+        '200':
+          description: SMS status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmsStatusResponse'
+              examples:
+                delivered:
+                  value:
+                    message_id: "msg_abc123def456"
+                    status: "delivered"
+                    delivered_at: "2025-12-31T10:00:05Z"
+                    provider_status: "DeliveredToTerminal"
+                pending:
+                  value:
+                    message_id: "msg_abc123def456"
+                    status: "pending"
+                    delivered_at: null
+                    provider_status: "MessageWaiting"
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/sms/validate:
+    post:
+      summary: Validate SMS request (dry run)
+      description: Validate an SMS request without sending
+      operationId: validateSms
+      tags:
+        - SMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendSmsRequest'
+      responses:
+        '200':
+          description: Validation passed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/dlr/callback:
+    post:
+      summary: Delivery Report Callback
+      description: |
+        Endpoint to receive delivery reports from SMS providers.
+        This is called by Mega when it receives a DLR from the provider.
+      operationId: dlrCallback
+      tags:
+        - DLR
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DlrCallbackRequest'
+      responses:
+        '200':
+          description: DLR processed
+        '202':
+          description: DLR accepted for processing
+        '400':
+          description: Invalid DLR payload
+
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags:
+        - System
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    SendSmsRequest:
+      type: object
+      required:
+        - to
+        - message
+      properties:
+        to:
+          type: string
+          description: Phone number in E.164 format
+          pattern: '^\+[1-9]\d{6,14}$'
+          example: "+254700123456"
+        message:
+          type: string
+          description: SMS message content (max 160 chars for single SMS)
+          maxLength: 918
+          example: "Your payment has been received."
+        sender_id:
+          type: string
+          description: Sender ID (alphanumeric, max 11 chars)
+          maxLength: 11
+          default: "SOLARIUM"
+          example: "SOLARIUM"
+        reference:
+          type: string
+          description: External reference for tracking
+          maxLength: 100
+          example: "PAY-12345"
+        callback_url:
+          type: string
+          format: uri
+          description: URL to receive delivery reports
+          example: "https://solarium.api/sms/callback"
+        priority:
+          type: string
+          enum: [low, normal, high]
+          default: normal
+          description: Message priority
+        dry_run:
+          type: boolean
+          default: false
+          description: If true, validate only without sending
+
+    SendSmsResponse:
+      type: object
+      properties:
+        message_id:
+          type: string
+          description: Unique message identifier
+          example: "msg_abc123def456"
+        status:
+          type: string
+          enum: [queued, sent, failed]
+          example: "queued"
+        to:
+          type: string
+          example: "+254700123456"
+        segments:
+          type: integer
+          description: Number of SMS segments
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-12-31T10:00:00Z"
+
+    SmsStatusResponse:
+      type: object
+      properties:
+        message_id:
+          type: string
+          example: "msg_abc123def456"
+        status:
+          type: string
+          enum: [queued, sent, delivered, failed, expired]
+          example: "delivered"
+        to:
+          type: string
+          example: "+254700123456"
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2025-12-31T10:00:05Z"
+        failed_at:
+          type: string
+          format: date-time
+          nullable: true
+        failure_reason:
+          type: string
+          nullable: true
+        provider_status:
+          type: string
+          description: Raw status from SMS provider
+          example: "DeliveredToTerminal"
+
+    ValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        segments:
+          type: integer
+          description: Number of SMS segments that would be sent
+          example: 1
+        estimated_cost:
+          type: number
+          format: float
+          description: Estimated cost in USD
+          example: 0.02
+
+    DlrCallbackRequest:
+      type: object
+      required:
+        - message_id
+        - status
+      properties:
+        message_id:
+          type: string
+          example: "msg_abc123def456"
+        status:
+          type: string
+          enum: [delivered, failed, expired]
+          example: "delivered"
+        delivered_at:
+          type: string
+          format: date-time
+        failure_reason:
+          type: string
+          nullable: true
+        provider_message_id:
+          type: string
+          description: Provider's internal message ID
+        provider_status:
+          type: string
+          description: Raw status code from provider
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: "invalid_phone_number"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Phone number format is invalid"
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details

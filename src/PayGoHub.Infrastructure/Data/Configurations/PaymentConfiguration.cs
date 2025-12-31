@@ -45,6 +45,10 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .HasColumnName("mpesa_receipt_number")
             .HasMaxLength(50);
 
+        builder.Property(p => p.ProviderKey)
+            .HasColumnName("provider_key")
+            .HasMaxLength(100);
+
         builder.Property(p => p.PaidAt).HasColumnName("paid_at");
         builder.Property(p => p.CreatedAt).HasColumnName("created_at");
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at");

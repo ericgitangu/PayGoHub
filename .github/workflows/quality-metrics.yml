@@ -1,0 +1,247 @@
+name: Release Quality Metrics
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version to analyze'
+        required: true
+        default: 'v1.0.0'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+jobs:
+  quality-score:
+    name: Calculate Quality Score
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: paygohub_test
+          POSTGRES_USER: paygohub
+          POSTGRES_PASSWORD: paygohub123
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Run tests with coverage
+        run: |
+          dotnet test tests/PayGoHub.Tests \
+            --configuration Release \
+            --collect:"XPlat Code Coverage" \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory TestResults
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=paygohub_test;Username=paygohub;Password=paygohub123"
+
+      - name: Install coverage tools
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        run: |
+          reportgenerator \
+            -reports:"**/TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"coverage-report" \
+            -reporttypes:"Html;JsonSummary;Badges"
+
+      - name: Check for vulnerabilities
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vulnerability-report.txt
+          VULN_COUNT=$(grep -c "has the following vulnerable packages" vulnerability-report.txt || echo "0")
+          echo "VULNERABILITY_COUNT=$VULN_COUNT" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Parse test results
+        run: |
+          # Parse test results
+          if [ -f "TestResults/test-results.trx" ]; then
+            PASSED=$(grep -o 'passed="[0-9]*"' TestResults/test-results.trx | head -1 | grep -o '[0-9]*' || echo "0")
+            FAILED=$(grep -o 'failed="[0-9]*"' TestResults/test-results.trx | head -1 | grep -o '[0-9]*' || echo "0")
+            echo "TEST_PASSED=$PASSED" >> $GITHUB_ENV
+            echo "TEST_FAILED=$FAILED" >> $GITHUB_ENV
+          else
+            echo "TEST_PASSED=0" >> $GITHUB_ENV
+            echo "TEST_FAILED=0" >> $GITHUB_ENV
+          fi
+
+      - name: Parse coverage
+        run: |
+          if [ -f "coverage-report/Summary.json" ]; then
+            COVERAGE=$(jq '.summary.linecoverage' coverage-report/Summary.json | cut -d. -f1)
+            echo "CODE_COVERAGE=$COVERAGE" >> $GITHUB_ENV
+          else
+            echo "CODE_COVERAGE=0" >> $GITHUB_ENV
+          fi
+
+      - name: Calculate quality score
+        run: |
+          # Quality Score Formula:
+          # Score = 100 - (Fatal × 15) - (Error × 3) - (Warn × 0.5) - (BugEscapes × 5) + Bonus
+
+          FATAL=0
+          ERROR=${{ env.TEST_FAILED }}
+          WARN=${{ env.VULNERABILITY_COUNT }}
+          BUG_ESCAPES=0
+
+          # Bonus for high coverage
+          COVERAGE=${{ env.CODE_COVERAGE }}
+          if [ "$COVERAGE" -ge 90 ]; then
+            BONUS=5
+          elif [ "$COVERAGE" -ge 80 ]; then
+            BONUS=3
+          elif [ "$COVERAGE" -ge 70 ]; then
+            BONUS=1
+          else
+            BONUS=0
+          fi
+
+          # Calculate score (using bc for floating point)
+          SCORE=$(echo "100 - ($FATAL * 15) - ($ERROR * 3) - ($WARN * 0.5) - ($BUG_ESCAPES * 5) + $BONUS" | bc)
+
+          # Determine grade
+          if [ $(echo "$SCORE >= 90" | bc) -eq 1 ]; then
+            GRADE="A"
+          elif [ $(echo "$SCORE >= 80" | bc) -eq 1 ]; then
+            GRADE="B"
+          elif [ $(echo "$SCORE >= 70" | bc) -eq 1 ]; then
+            GRADE="C"
+          elif [ $(echo "$SCORE >= 60" | bc) -eq 1 ]; then
+            GRADE="D"
+          else
+            GRADE="F"
+          fi
+
+          echo "QUALITY_SCORE=$SCORE" >> $GITHUB_ENV
+          echo "QUALITY_GRADE=$GRADE" >> $GITHUB_ENV
+          echo "BONUS=$BONUS" >> $GITHUB_ENV
+
+      - name: Generate quality report
+        run: |
+          VERSION="${{ github.event.inputs.release_version || github.ref_name }}"
+
+          cat > quality-report.json << EOF
+          {
+            "project": "PayGoHub",
+            "version": "$VERSION",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "metrics": {
+              "tests_passed": ${{ env.TEST_PASSED }},
+              "tests_failed": ${{ env.TEST_FAILED }},
+              "vulnerabilities": ${{ env.VULNERABILITY_COUNT }},
+              "code_coverage": ${{ env.CODE_COVERAGE }},
+              "bonus": ${{ env.BONUS }}
+            },
+            "score": ${{ env.QUALITY_SCORE }},
+            "grade": "${{ env.QUALITY_GRADE }}",
+            "threshold": 75,
+            "passed": $([ $(echo "${{ env.QUALITY_SCORE }} >= 75" | bc) -eq 1 ] && echo "true" || echo "false")
+          }
+          EOF
+
+      - name: Post quality summary
+        run: |
+          VERSION="${{ github.event.inputs.release_version || github.ref_name }}"
+
+          echo "# 📊 Release Quality Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Project:** PayGoHub" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Quality Score" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Score** | **${{ env.QUALITY_SCORE }}/100** |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Grade** | **${{ env.QUALITY_GRADE }}** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Passed | ${{ env.TEST_PASSED }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Failed | ${{ env.TEST_FAILED }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vulnerabilities | ${{ env.VULNERABILITY_COUNT }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Coverage | ${{ env.CODE_COVERAGE }}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bonus | +${{ env.BONUS }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Formula" >> $GITHUB_STEP_SUMMARY
+          echo "\`Score = 100 - (Fatal × 15) - (Error × 3) - (Warn × 0.5) - (BugEscapes × 5) + Bonus\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $(echo "${{ env.QUALITY_SCORE }} >= 75" | bc) -eq 1 ]; then
+            echo "✅ **Quality gate PASSED** (threshold: 75)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Quality gate FAILED** (threshold: 75)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: |
+            quality-report.json
+            coverage-report/
+            vulnerability-report.txt
+
+      - name: Quality gate check
+        run: |
+          if [ $(echo "${{ env.QUALITY_SCORE }} < 75" | bc) -eq 1 ]; then
+            echo "Quality gate failed! Score: ${{ env.QUALITY_SCORE }} (minimum: 75)"
+            exit 1
+          fi
+          echo "Quality gate passed! Score: ${{ env.QUALITY_SCORE }}"
+
+  # DORA Metrics
+  dora-metrics:
+    name: DORA Metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate DORA metrics
+        run: |
+          # Deployment Frequency (last 30 days)
+          DEPLOY_COUNT=$(git log --since="30 days ago" --oneline --tags | wc -l)
+
+          # Lead Time for Changes (average days from commit to tag)
+          # Simplified: just count commits in last release
+          COMMITS_IN_RELEASE=$(git log --oneline $(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~10")..HEAD | wc -l)
+
+          echo "DEPLOY_FREQUENCY=$DEPLOY_COUNT" >> $GITHUB_ENV
+          echo "COMMITS_IN_RELEASE=$COMMITS_IN_RELEASE" >> $GITHUB_ENV
+
+      - name: Post DORA summary
+        run: |
+          echo "# 📈 DORA Metrics (Last 30 Days)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment Frequency | ${{ env.DEPLOY_FREQUENCY }} releases |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commits in this release | ${{ env.COMMITS_IN_RELEASE }} |" >> $GITHUB_STEP_SUMMARY

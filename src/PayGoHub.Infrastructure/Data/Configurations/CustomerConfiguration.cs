@@ -44,6 +44,16 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasColumnName("address")
             .HasMaxLength(500);
 
+        builder.Property(c => c.Country)
+            .HasColumnName("country")
+            .HasMaxLength(10)
+            .HasDefaultValue("KE");
+
+        builder.Property(c => c.Currency)
+            .HasColumnName("currency")
+            .HasMaxLength(10)
+            .HasDefaultValue("KES");
+
         builder.Property(c => c.Status)
             .HasColumnName("status")
             .HasConversion<string>()
