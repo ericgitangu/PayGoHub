@@ -1,0 +1,292 @@
+# Release Quality & Testing Framework
+## Stakeholder Brief for Engineering Leadership
+
+**Document Type:** Foundational Technical Brief
+**Prepared by:** Eric Gitangu, QA Lead
+**For:** Bineyame AFEWORK, Head of Software Engineering
+**Date:** December 31, 2025
+**Status:** Production-Ready
+
+---
+
+## Quick Links
+
+| Resource | Link |
+|----------|------|
+| QA Wiki | [git.plugintheworld.com/db-dev/qa/-/wikis](https://git.plugintheworld.com/db-dev/qa/-/wikis) |
+| E2E Tests (AFAT-2290) | [solarhub/script/eric/e2e_perf](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf) |
+| Release Quality | [solarhub/script/eric/release_quality](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
+| Testing Strategy | [qa.wiki/testing](https://git.plugintheworld.com/db-dev/qa/-/wikis/testing/README) |
+| CI/CD Setup | [qa.wiki/guides/ci](https://git.plugintheworld.com/db-dev/qa/-/wikis/guides/ci/ci-cd-setup) |
+| Moto API | [db-dev/moto](https://git.plugintheworld.com/db-dev/moto) |
+| QA Dashboard | [github.com/ericgitangu/engie-powerhub-qa](https://github.com/ericgitangu/engie-powerhub-qa) |
+
+---
+
+## Context: Pilot Migration Project
+
+This document addresses the QA infrastructure supporting the **pilot migration from existing PowerHub systems to SOLRM (Solarium)**. The migration affects **all 7 production markets**.
+
+### Scope: All Production Markets
+
+| Market | Code | E2E Coverage | Release Quality | Device Testing |
+|--------|------|--------------|-----------------|----------------|
+| **Uganda** | UG | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | **Active** |
+| Benin | BJ | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | - |
+| Ivory Coast | CI | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | - |
+| Mozambique | MZ | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | - |
+| Nigeria | NG | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | - |
+| Zambia | ZM | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | - |
+| Mobisol (KE/TZ) | KE | [986 scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) | ✅ Active | - |
+| Rwanda | RW | Pending setup | Pending | Pending |
+
+---
+
+## Part 1: How We Define Release Quality
+
+> **Full Documentation:** [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md)
+
+### Quality Score (0-100)
+
+```
+Score = 100 - (Fatal × 15) - (Error × 3) - (Warn × 0.5) - (BugEscapes × 5) + Bonus
+```
+
+| Score | Grade | Action |
+|-------|-------|--------|
+| 90-100 | A | Continue current practices |
+| 80-89 | B | Minor improvements |
+| 70-79 | C | Review test coverage |
+| 60-69 | D | Immediate remediation |
+| < 60 | F | Block release |
+
+### Bug Escapes
+Errors that automated tests should have caught:
+- `NoMethodError`, `TypeError`, `ArgumentError`
+- `ActiveRecord::RecordInvalid`
+- `ActionController::ParameterMissing`
+
+---
+
+## Part 2: Tools We Use
+
+> **Architecture Details:** [CI/CD Setup Guide](https://git.plugintheworld.com/db-dev/qa/-/wikis/guides/ci/ci-cd-setup)
+
+### Infrastructure Overview
+
+```mermaid
+graph TB
+    subgraph Testing["Testing Infrastructure"]
+        E2E[E2E Tests<br/>986 scenarios<br/>9,421 steps]
+        UNIT[Unit Tests<br/>16 .NET tests]
+        PERF[Performance<br/>K6 load tests]
+    end
+
+    subgraph Collection["Data Collection"]
+        GL[GitLab API<br/>DORA metrics]
+        SSH[SSH/LXC<br/>production logs]
+        RQ[Release Quality<br/>compare_releases.rb]
+    end
+
+    subgraph Output["Reports"]
+        HTML[HTML Dashboard]
+        CI[CI/CD Pipeline<br/>42 jobs]
+    end
+
+    Testing --> CI
+    Collection --> RQ
+    RQ --> HTML
+    CI --> HTML
+```
+
+### Tool Stack (Production-Ready)
+
+| Tool | Purpose | Status | Documentation |
+|------|---------|--------|---------------|
+| **E2E Cucumber/Playwright** | 986 automated scenarios | ✅ | [E2E Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf) |
+| **compare_releases.rb** | Release quality scoring | ✅ | [Release Quality](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
+| **GitLab CI/CD** | 42 parallel jobs | ✅ | [.gitlab-ci.yml](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/.gitlab-ci.yml) |
+| **K6** | Performance testing | ✅ | [Performance Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/performance-testing) |
+| **Moto API** | Token generation | ✅ | [Moto Docs](https://git.plugintheworld.com/db-dev/moto/blob/master/docs/) |
+
+---
+
+## Part 3: E2E Testing Infrastructure
+
+> **Full Presentation:** [PowerHub E2E Testing Infrastructure - Pilot (December 17, 2025)](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf)
+
+### Validated Metrics (Production-Ready)
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Test scenarios | **986** | ✅ |
+| Test steps | **9,421** | ✅ |
+| Undefined steps | **0** | ✅ 100% implemented |
+| CI/CD jobs | **42** | ✅ 7 markets × 6 types |
+| Smoke tests | **47/47** | ✅ Passing |
+
+### Coverage by Business Domain
+
+> **Domain Details:** [Business Domains Wiki](https://git.plugintheworld.com/db-dev/qa/-/wikis/business_domains/README)
+
+| Domain | Scenarios | Key Workflows |
+|--------|-----------|---------------|
+| [Authentication](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/authentication) | 45 | Login, RBAC, audit |
+| [Customers](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/customers) | 178 | Onboarding, KYC |
+| [Sales](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/sales) | 142 | Orders, leads, quotes |
+| [Payments](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/payments) | 89 | Transactions, accounts |
+| [Commissions](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/commissions) | 47 | Calculation, payouts |
+| [Referrals](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/referrals) | 58 | Creation, transitions |
+| **TOTAL** | **986** | **12 domains** |
+
+### Efficiency Gains
+
+| Metric | Manual QA | Automated | Improvement |
+|--------|-----------|-----------|-------------|
+| Smoke validation | 2-4 hours | 5 min | **95%** |
+| Critical flows | 4-6 hours | 10 min | **93%** |
+| Full regression | 2-3 days | 15-25 min | **98%** |
+| Market coverage | Sequential | Parallel | **7x throughput** |
+
+---
+
+## Part 4: What You Will See
+
+### Release Quality Dashboard
+
+> **View Reports:** Access `reports/index.html` after running `ruby compare_releases.rb 1.2.5 1.2.6`
+
+| Section | Content |
+|---------|---------|
+| Quality Score Card | 0-100 with grade (A/B/C/D/F) |
+| DORA Metrics | Deploy frequency, lead time, MTTR |
+| Per-Market Health | All 7 markets scored |
+| Bug Escape Analysis | Errors tests should catch |
+| Comparison View | Previous vs current release |
+
+### E2E Test Reports (42 CI Jobs)
+
+| Artifact | Purpose |
+|----------|---------|
+| HTML Report | Screenshots, step details |
+| JUnit XML | CI integration |
+| JSON | Dashboard consumption |
+| Videos | Failure debugging |
+
+---
+
+## Part 5: M-Services Migration Testing
+
+### Device Testing in Uganda
+
+**Test Device:** `SHS12L/A/BT/243203457`
+
+```mermaid
+sequenceDiagram
+    participant UG as Uganda Instance
+    participant MOTO as Moto API
+    participant DEV as Test Device
+
+    Note over DEV: Device reset to Mobisol
+    Note over DEV: Reconfigured for Uganda
+
+    UG->>MOTO: POST /tokens/solarium/generate
+    MOTO-->>UG: {token: "xxxx-xxxx"}
+    UG->>DEV: Send via M2M
+    DEV-->>UG: Unlocked ✅
+```
+
+### Known Issue: False Positive (Device Ownership)
+
+**Reported by:** Stephen KAZIBWE
+**CC:** Somto EZEUDEGBUNAM, Daniel KIMASSAI
+
+| Issue | Description |
+|-------|-------------|
+| Problem | MOTO generated token for device after ownership transfer |
+| Expected | MOTO should reject tokens from non-owning entities |
+| Impact | Sequence counter incremented incorrectly |
+| Action | Add ownership validation to [Moto](https://git.plugintheworld.com/db-dev/moto) |
+
+### .NET Backend Tests (16/16 Passing)
+
+> **Source:** [github.com/ericgitangu/PayGoHub](https://github.com/ericgitangu/PayGoHub)
+
+**MomoPaymentServiceTests (8):**
+- Provider/currency/amount validation
+- Customer lookup (phone/serial/ID)
+- Duplicate detection (idempotency)
+
+**TokenGenerationServiceTests (8):**
+- Stateless/stateful generation
+- Token determinism
+- Sequence management
+
+**Pending:**
+- [ ] Device ownership validation
+- [ ] End-to-end MOTO integration
+- [ ] Mega SMS delivery
+
+---
+
+## Part 6: CI/CD Integration
+
+> **Pipeline Configuration:** [.gitlab-ci.yml](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/.gitlab-ci.yml)
+
+### GitLab Pipeline (42 Jobs)
+
+```
+Markets: uganda, benin, ivorycoast, mozambique, nigeria, zambia, mobisol
+Types: smoke, fast, incremental, regression, k6, visual
+Jobs: 7 × 6 = 42
+```
+
+### Auto-Trigger Flow
+
+```
+Code Merge → Helm Deploy → E2E Tests (5 min) → Pass/Fail → Issue
+```
+
+---
+
+## Part 7: Summary for Bineyame
+
+### Your Requirements - Status
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| **Measure release quality** | ✅ Ready | [compare_releases.rb](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
+| **Measure performance** | ✅ Ready | [K6 Load Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/performance-testing) |
+| **Solid automation testing** | ✅ Ready | [986 E2E scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) |
+| **M-services testing** | ⚠️ In Progress | Unit tests done, ownership pending |
+
+### Business Impact
+
+| Capability | Before | After |
+|------------|--------|-------|
+| Release confidence | Subjective | Quantified (A/B/C/D/F) |
+| Bug detection | Customer complaints | Pre-release automation |
+| Regression testing | 2-3 days manual | 15-25 min automated |
+| Market coverage | Sequential | Parallel (7x throughput) |
+
+---
+
+## Part 8: Deep-Dive Resources
+
+| Topic | Link |
+|-------|------|
+| Testing Strategy | [qa.wiki/testing](https://git.plugintheworld.com/db-dev/qa/-/wikis/testing/README) |
+| Business Domains | [qa.wiki/business_domains](https://git.plugintheworld.com/db-dev/qa/-/wikis/business_domains/README) |
+| CI/CD Architecture | [qa.wiki/guides/ci](https://git.plugintheworld.com/db-dev/qa/-/wikis/guides/ci/ci-cd-setup) |
+| Troubleshooting | [qa.wiki/troubleshooting](https://git.plugintheworld.com/db-dev/qa/-/wikis/troubleshooting/README) |
+| Moto API Docs | [moto/docs](https://git.plugintheworld.com/db-dev/moto/blob/master/docs/) |
+| E2E Quick Start | [QUICK_START.md](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/script/eric/e2e_perf/QUICK_START.md) |
+
+---
+
+**Document Version:** 3.0
+**Last Updated:** December 31, 2025
+**References:**
+- [PowerHub E2E Testing Infrastructure (Dec 17, 2025)](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf)
+- [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md)
+- [QA Wiki](https://git.plugintheworld.com/db-dev/qa/-/wikis)

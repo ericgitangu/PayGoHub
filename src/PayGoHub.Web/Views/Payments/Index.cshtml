@@ -1,0 +1,49 @@
+@model IEnumerable<PaymentDto>
+@{
+    ViewData["Title"] = "Payments";
+    ViewData["ActivePage"] = "Payments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">Payments</h4>
+        <p class="text-muted mb-0">View all payment transactions</p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0 ps-4">Customer</th>
+                        <th class="border-0">Amount</th>
+                        <th class="border-0">Method</th>
+                        <th class="border-0">Status</th>
+                        <th class="border-0 pe-4">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in Model)
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary-subtle text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        @payment.CustomerInitials
+                                    </div>
+                                    <p class="mb-0 fw-medium">@payment.CustomerName</p>
+                                </div>
+                            </td>
+                            <td class="fw-semibold">KES @payment.Amount.ToString("N0")</td>
+                            <td><span class="badge bg-@(payment.Method == "Mpesa" ? "success" : "primary")-subtle text-@(payment.Method == "Mpesa" ? "success" : "primary")">@payment.Method</span></td>
+                            <td><span class="badge bg-@payment.StatusClass">@payment.Status</span></td>
+                            <td class="pe-4 text-muted">@payment.TimeAgo</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

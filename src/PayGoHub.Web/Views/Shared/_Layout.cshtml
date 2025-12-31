@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PayGoHub</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/PayGoHub.Web.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar bg-dark" id="sidebar">
+            <div class="sidebar-header p-3 border-bottom border-secondary">
+                <a asp-controller="Home" asp-action="Index" class="text-decoration-none">
+                    <div class="d-flex align-items-center">
+                        <div class="logo-icon me-2">
+                            <i class="bi bi-sun-fill text-warning fs-4"></i>
+                        </div>
+                        <span class="fs-5 fw-bold text-white">PayGoHub</span>
+                    </div>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav p-2">
+                <div class="nav-section">
+                    <span class="nav-section-title text-muted small text-uppercase px-3">Main</span>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                                <i class="bi bi-grid-1x2-fill me-2"></i> Dashboard
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section mt-3">
+                    <span class="nav-section-title text-muted small text-uppercase px-3">Management</span>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Customers" ? "active" : "")" asp-controller="Customers" asp-action="Index">
+                                <i class="bi bi-people-fill me-2"></i> Customers
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Payments" ? "active" : "")" asp-controller="Payments" asp-action="Index">
+                                <i class="bi bi-credit-card-fill me-2"></i> Payments
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Loans" ? "active" : "")" asp-controller="Loans" asp-action="Index">
+                                <i class="bi bi-bank2 me-2"></i> Loans
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="nav-section mt-3">
+                    <span class="nav-section-title text-muted small text-uppercase px-3">Operations</span>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Installations" ? "active" : "")" asp-controller="Installations" asp-action="Index">
+                                <i class="bi bi-tools me-2"></i> Installations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Devices" ? "active" : "")" asp-controller="Devices" asp-action="Index">
+                                <i class="bi bi-cpu-fill me-2"></i> Devices
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer p-3 border-top border-secondary mt-auto">
+                <a class="nav-link text-muted" href="#">
+                    <i class="bi bi-gear-fill me-2"></i> Settings
+                </a>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="page-content" id="page-content">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand navbar-light bg-white border-bottom sticky-top px-4">
+                <button class="btn btn-link text-dark me-3" id="sidebarToggle">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+
+                <div class="d-none d-md-block">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control bg-light border-start-0" placeholder="Search customers, payments, devices..." style="min-width: 300px;">
+                    </div>
+                </div>
+
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item me-3">
+                        <a class="nav-link position-relative" href="#">
+                            <i class="bi bi-bell fs-5"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                3
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <div class="avatar me-2">
+                                <div class="avatar-initials bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    EG
+                                </div>
+                            </div>
+                            <span class="d-none d-md-inline">Eric Gitangu</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="p-4">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
