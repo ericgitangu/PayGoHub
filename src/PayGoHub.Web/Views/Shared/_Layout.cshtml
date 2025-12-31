@@ -3,9 +3,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="PayGoHub - M-Services Backend for Solar Home Systems across Africa" />
     <title>@ViewData["Title"] - PayGoHub</title>
+    <link rel="icon" type="image/png" href="~/favicon.png" />
+    <link rel="apple-touch-icon" href="~/favicon.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PayGoHub.Web.styles.css" asp-append-version="true" />
 </head>
@@ -17,7 +21,7 @@
                 <a asp-controller="Home" asp-action="Index" class="text-decoration-none">
                     <div class="d-flex align-items-center">
                         <div class="logo-icon me-2">
-                            <i class="bi bi-sun-fill text-warning fs-4"></i>
+                            <img src="~/images/logo.png" alt="PayGoHub" style="width: 40px; height: 40px; border-radius: 8px;" />
                         </div>
                         <span class="fs-5 fw-bold text-white">PayGoHub</span>
                     </div>
@@ -133,8 +137,12 @@
                             <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i> Profile</a></li>
                             <li><a class="dropdown-item" asp-controller="Home" asp-action="Settings"><i class="bi bi-gear me-2"></i> Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" id="googleSignIn"><i class="bi bi-google me-2"></i> Sign in with Google</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                            <li id="googleSignInItem"><a class="dropdown-item" asp-controller="Account" asp-action="Login"><i class="bi bi-google me-2"></i> Sign in with Google</a></li>
+                            <li id="logoutItem" style="display: none;">
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                    <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i> Logout</button>
+                                </form>
+                            </li>
                         </ul>
                     </li>
                 </ul>

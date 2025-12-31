@@ -399,5 +399,52 @@ document.addEventListener('DOMContentLoaded', function () {
         row.style.cursor = 'pointer';
     });
 
+    // Fetch user authentication info
+    fetchUserInfo();
+
     console.log('PayGoHub Dashboard initialized with theme and notifications support');
 });
+
+// User authentication management
+async function fetchUserInfo() {
+    try {
+        const response = await fetch('/Account/GetUserInfo');
+        const data = await response.json();
+
+        const userAvatar = document.getElementById('userAvatar');
+        const avatarFallback = document.getElementById('avatarFallback');
+        const googleSignInItem = document.getElementById('googleSignInItem');
+        const logoutItem = document.getElementById('logoutItem');
+        const userName = document.querySelector('#userDropdown span');
+
+        if (data.authenticated) {
+            // Update avatar with Google profile picture
+            if (data.picture && userAvatar) {
+                userAvatar.src = data.picture;
+                userAvatar.style.display = 'block';
+                if (avatarFallback) avatarFallback.style.display = 'none';
+            }
+
+            // Update user name
+            if (data.name && userName) {
+                userName.textContent = data.name;
+            }
+
+            // Show logout, hide sign in
+            if (googleSignInItem) googleSignInItem.style.display = 'none';
+            if (logoutItem) logoutItem.style.display = 'block';
+
+            // Store user info
+            localStorage.setItem('paygohub-user', JSON.stringify(data));
+        } else {
+            // Show sign in, hide logout
+            if (googleSignInItem) googleSignInItem.style.display = 'block';
+            if (logoutItem) logoutItem.style.display = 'none';
+
+            // Clear stored user info
+            localStorage.removeItem('paygohub-user');
+        }
+    } catch (error) {
+        console.log('User not authenticated');
+    }
+}

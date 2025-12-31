@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.EntityFrameworkCore;
 using PayGoHub.Application.Interfaces;
 using PayGoHub.Infrastructure.Data;
@@ -7,9 +9,61 @@ using PayGoHub.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load environment variables from .env file
+var envPath = Path.Combine(builder.Environment.ContentRootPath, ".env");
+if (File.Exists(envPath))
+{
+    foreach (var line in File.ReadAllLines(envPath))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+        var parts = line.Split('=', 2);
+        if (parts.Length == 2)
+        {
+            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+        }
+    }
+}
+
 // Add DbContext
 builder.Services.AddDbContext<PayGoHubDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add Google OAuth Authentication
+var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+    ?? builder.Configuration["Authentication:Google:ClientId"]
+    ?? "";
+var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
+    ?? builder.Configuration["Authentication:Google:ClientSecret"]
+    ?? "";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+})
+.AddGoogle(options =>
+{
+    options.ClientId = googleClientId;
+    options.ClientSecret = googleClientSecret;
+    options.CallbackPath = "/signin-google";
+    options.SaveTokens = true;
+    options.Scope.Add("profile");
+    options.Scope.Add("email");
+    options.Events.OnCreatingTicket = async context =>
+    {
+        // Add profile picture to claims
+        var picture = context.User.GetProperty("picture").GetString();
+        if (!string.IsNullOrEmpty(picture))
+        {
+            context.Identity?.AddClaim(new System.Security.Claims.Claim("picture", picture));
+        }
+    };
+});
 
 // Add existing services
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -61,6 +115,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+// Add authentication middleware
+app.UseAuthentication();
 
 // API key authentication for /api routes
 app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), appBuilder =>
