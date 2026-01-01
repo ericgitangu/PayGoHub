@@ -17,7 +17,7 @@
 |----------|------|
 | QA Wiki | [git.plugintheworld.com/db-dev/qa/-/wikis](https://git.plugintheworld.com/db-dev/qa/-/wikis) |
 | E2E Tests (AFAT-2290) | [solarhub/script/eric/e2e_perf](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf) |
-| Release Quality | [solarhub/script/eric/release_quality](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
+| Release Quality | [solarhub/script/eric/release_quality](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/script/eric/release_quality/README.md) |
 | Testing Strategy | [qa.wiki/testing](https://git.plugintheworld.com/db-dev/qa/-/wikis/testing/README) |
 | CI/CD Setup | [qa.wiki/guides/ci](https://git.plugintheworld.com/db-dev/qa/-/wikis/guides/ci/ci-cd-setup) |
 | Moto API | [db-dev/moto](https://git.plugintheworld.com/db-dev/moto) |
@@ -31,9 +31,9 @@
 
 ---
 
-## Context: Pilot Migration Project
+## Context: QA Maturity - Extending QA to M-Services
 
-This document addresses the QA infrastructure supporting the **pilot migration from existing PowerHub systems to SOLRM (Solarium)**. The migration affects **all 7 production markets**.
+This document addresses the QA infrastructure supporting **extending the Solarhub QA test capabilities to M-Services**. The existing Solarhub E2E infrastructure is production-ready; the M-Services extension is **in progress**.
 
 ### Scope: All Production Markets
 
@@ -52,7 +52,7 @@ This document addresses the QA infrastructure supporting the **pilot migration f
 
 ## Part 1: How We Define Release Quality
 
-> **Full Documentation:** [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md)
+> **Full Documentation:** [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/script/eric/release_quality/README.md)
 
 ### Quality Score (0-100)
 
@@ -114,8 +114,8 @@ graph TB
 | Tool | Purpose | Status | Documentation |
 |------|---------|--------|---------------|
 | **E2E Cucumber/Playwright** | 986 automated scenarios | ✅ | [E2E Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf) |
-| **compare_releases.rb** | Release quality scoring | ✅ | [Release Quality](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
-| **GitLab CI/CD** | 42 parallel jobs | ✅ | [.gitlab-ci.yml](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/.gitlab-ci.yml) |
+| **compare_releases.rb** | Release quality scoring | ✅ | [Release Quality](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/script/eric/release_quality/README.md) |
+| **GitLab CI/CD** | 42 parallel jobs | ✅ | [.gitlab-ci.yml](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/.gitlab-ci.yml) |
 | **K6** | Performance testing | ✅ | [Performance Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/performance-testing) |
 | **Moto API** | Token generation | ✅ | [Moto Docs](https://git.plugintheworld.com/db-dev/moto/blob/master/docs/) |
 
@@ -149,7 +149,7 @@ graph TB
 | [Referrals](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features/referrals) | 58 | Creation, transitions |
 | **TOTAL** | **986** | **12 domains** |
 
-### Efficiency Gains
+### Efficiency Gains (Solarhub)
 
 | Metric | Manual QA | Automated | Improvement |
 |--------|-----------|-----------|-------------|
@@ -157,6 +157,79 @@ graph TB
 | Critical flows | 4-6 hours | 10 min | **93%** |
 | Full regression | 2-3 days | 15-25 min | **98%** |
 | Market coverage | Sequential | Parallel | **7x throughput** |
+
+### M-Services E2E Testing (Pending)
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Test scenarios | **0** | ⚠️ Pending M-Service specific scenarios |
+| Test steps | **0** | ⚠️ Pending M-Service specific scenarios |
+| Undefined steps | **0** | ⚠️ Pending M-Service specific context |
+| CI/CD jobs | **0** | ⚠️ Pending m-services specific integration |
+| Smoke tests | **0** | ⚠️ Pending |
+
+### M-Services Testing Domains (Discussion with Joshua)
+
+#### MOTO - Token Generation Service
+
+| Domain | Priority | Key Workflows |
+|--------|----------|---------------|
+| Token Generation | P0 | Stateless/stateful token creation, OpenPAYGO algorithm |
+| Device Ownership | P0 | Ownership validation before token issuance |
+| Sequence Management | P1 | Counter synchronization, rollback handling |
+| Multi-Manufacturer | P1 | Angaza, d.light, BBOXX, Fenix algorithm support |
+| API Contract | P1 | Solarium -> Moto request/response validation |
+
+#### M2M - Machine-to-Machine Commands
+
+| Domain | Priority | Key Workflows |
+|--------|----------|---------------|
+| Command Dispatch | P0 | Device command creation and sending |
+| Callback Handling | P0 | Async callback processing from devices |
+| Device Registration | P1 | Auto-registration on first command |
+| Command Status | P1 | Pending/success/failed state transitions |
+| Retry Mechanism | P2 | Failed command retry with backoff |
+
+#### MOMOEP - Mobile Money Payments
+
+| Domain | Priority | Key Workflows |
+|--------|----------|---------------|
+| Payment Validation | P0 | Provider/currency/amount validation |
+| Payment Confirmation | P0 | Transaction completion flow |
+| Multi-Provider | P0 | MTN, Airtel, Vodafone, M-PESA support |
+| Idempotency | P1 | Duplicate payment detection |
+| Reconciliation | P1 | Batch reconciliation jobs |
+
+#### MEGA - SMS/Notification Gateway
+
+| Domain | Priority | Key Workflows |
+|--------|----------|---------------|
+| SMS Delivery | P0 | Single message delivery to customer |
+| Provider Failover | P0 | AfricasTalking -> Twilio -> Nexmo fallback |
+| Delivery Callbacks | P1 | Status webhook handling |
+| Bulk Messaging | P2 | Mass notification campaigns |
+| Cost Optimization | P2 | Provider selection by cost/region |
+
+#### MESE - USSD Session Management
+
+| Domain | Priority | Key Workflows |
+|--------|----------|---------------|
+| Session Creation | P0 | USSD session initialization |
+| Menu Navigation | P0 | Multi-level menu flow |
+| Multi-Language | P1 | English, Swahili, Luganda support |
+| Session Timeout | P1 | Stale session cleanup |
+| Payment via USSD | P0 | Mese -> Momoep -> Solarhub flow |
+
+#### Cross-Service Integration Flows
+
+| Flow | Services | Priority | Scenarios |
+|------|----------|----------|-----------|
+| **Payment + Token** | Momoep -> Solarhub -> Moto -> Mega | P0 | Payment triggers token generation + SMS |
+| **Device Token Delivery** | Solarhub -> Moto -> M2M -> Mega | P0 | Token generated, sent to device, SMS confirmation |
+| **USSD Payment** | Mese -> Momoep -> Solarhub -> Moto | P0 | Customer pays via USSD, gets token |
+| **Device Command** | Solarhub -> M2M -> Device -> Callback | P1 | Admin sends command, device responds |
+
+**Estimated Scenarios Needed:** 150+ across all m-services
 
 ---
 
@@ -191,12 +264,23 @@ graph TB
 
 The M-Services ecosystem consists of four interconnected Ruby on Rails applications that handle device management, payments, and notifications:
 
-| Service | Purpose | Production Status | QA Testing Status |
-|---------|---------|-------------------|-------------------|
-| **moto** | Token generation for device unlock | ✅ Production | ✅ Unit + Integration + Ownership Spec |
-| **m2m** | Machine-to-machine device commands | ✅ Production | ✅ Unit + Integration tests |
-| **momoep** | Mobile money payment processing | ✅ Production | ✅ Unit + Contract tests |
-| **mega** | SMS/notification delivery | ⚠️ Pending | ✅ Contract + Integration tests |
+| Service | Purpose | Production Status | Unit Tests | Integration Tests | Contract Tests |
+|---------|---------|-------------------|------------|-------------------|----------------|
+| **moto** | Token generation for device unlock | ✅ Production | 46 files | **0** | **0** |
+| **m2m** | Machine-to-machine device commands | ✅ Production | Existing | **0** | **0** |
+| **momoep** | Mobile money payment processing | ✅ Production | 101 files | **0** | **0** |
+| **mega** | SMS/notification delivery | ⚠️ Pending | 21 files | **0** | **0** |
+| **mese** | USSD session management | ✅ Production | 14 files | **0** | **0** |
+
+### M-Services Testing Reality
+
+| Area | Status | Notes |
+|------|--------|-------|
+| Unit Tests | **Partial** | Existing tests in each repo |
+| Integration Tests | **NOT STARTED** | 0% - Critical gap |
+| Contract Tests (Pact) | **PLANNED** | Phase 2 - Not implemented |
+| Performance Baselines | **NOT ESTABLISHED** | No SLAs defined |
+| CI/CD Templates | **Created** | Ready for GitLab deployment |
 
 ### PayGoHub: Proof of Concept for M-Services Integration
 
@@ -329,32 +413,40 @@ sequenceDiagram
 
 **Completed (December 31, 2025):**
 
-- [x] Mega SMS contract tests (OpenAPI spec + xUnit tests)
-- [x] Mega SMS integration tests for staging
-- [x] Device ownership validation technical spec
-- [x] Device ownership validation Ruby implementation (reference)
-- [x] Centralized CI/CD templates for m-services (8 templates)
-- [x] GitHub Actions workflows for PayGoHub (3 workflows)
+- [x] Centralized CI/CD templates for m-services (8 templates) - on GitHub
+- [x] PayGoHub PoC deployed (exploratory .NET prototype)
 - [x] PayGoHub OpenAPI 3.0 specification
+- [x] PayGoHub xUnit tests (16/16 passing)
+- [x] Device ownership validation technical spec (reference only)
 
-**Immediate (Rwanda Release Jan 3-5, 2026):**
+**NOT DONE (Clarification):**
 
-- [ ] Create GitLab repos and push templates
+- [ ] Pact contract testing - **NOT IMPLEMENTED** (Phase 2 planned)
+- [ ] Integration tests for m-services - **0%**
+- [ ] CI/CD templates deployed to GitLab - **NOT DONE**
+- [ ] Performance baselines for m-services - **NOT ESTABLISHED**
+
+**Immediate (UG to RW Unit Transfer Test - Jan 3-5, 2026):**
+
+- [ ] Create GitLab repos and push CI/CD templates
 - [ ] Configure M2M_API_KEY, SOLRM_API_KEY in production
+- [ ] Run UG to RW unit transfer integration test
 - [ ] Run end-to-end integration testing for payment flow
 - [ ] Post-production token acceptance test
 
-**Post-Release:**
+**Post-Release (Required for M-Services QA):**
 
-- [ ] Integrate CI templates into existing m-services repos
+- [ ] Implement Pact contract testing framework
+- [ ] Create integration tests for payment flow (Momoep -> Solarhub -> Moto)
+- [ ] Create integration tests for token flow (Solarhub -> Moto -> Mega)
+- [ ] Establish performance baselines for all m-services
 - [ ] Set up automated quality gate enforcement
-- [ ] Create market-specific E2E testing for m-services
 
 ---
 
 ## Part 6: CI/CD Integration
 
-> **Pipeline Configuration:** [.gitlab-ci.yml](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/.gitlab-ci.yml)
+> **Pipeline Configuration:** [.gitlab-ci.yml](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/.gitlab-ci.yml)
 
 ### GitLab Pipeline (42 Jobs)
 
@@ -378,21 +470,32 @@ Code Merge → Helm Deploy → E2E Tests (5 min) → Pass/Fail → Issue
 
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
-| **Measure release quality** | ✅ Ready | [compare_releases.rb](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md) |
-| **Measure performance** | ✅ Ready | [K6 Load Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/performance-testing) |
-| **Solid automation testing** | ✅ Ready | [986 E2E scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) |
-| **M-services testing** | ✅ Ready | Contract + Integration tests, OpenAPI specs |
-| **Centralized M-Services CI/CD** | ✅ Implemented | 8 templates, 5 service examples, ready to push |
+| **Measure release quality** | ✅ Ready | [compare_releases.rb](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/script/eric/release_quality/README.md) |
+| **Measure performance** | ✅ Ready (Solarhub) | [K6 Load Tests](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/performance-testing) |
+| **Solid automation testing** | ✅ Ready (Solarhub) | [986 E2E scenarios](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf/tests/features) |
+| **M-services testing** | ⚠️ In Progress | Unit tests exist; Integration/Contract tests **NOT STARTED** |
+| **Centralized M-Services CI/CD** | ⚠️ Created | 8 templates created, **NOT YET DEPLOYED** to GitLab |
 
 ### M-Services Reality Check
 
-| Service | What's Done | What's Pending |
-|---------|-------------|----------------|
-| **moto** | Unit + Integration + Ownership validation spec | Push to GitLab, integrate into service |
-| **m2m** | Unit + Integration tests, CI template | Push to GitLab, integrate into service |
-| **momoep** | Unit + Contract tests, CI template | Push to GitLab, integrate into service |
-| **mega** | Contract + Integration tests, CI template | Push to GitLab, integrate into service |
-| **CI/CD Templates** | 8 templates + 5 examples created | Create GitLab repo, push, integrate |
+| Service | Unit Tests | Integration Tests | Contract Tests | CI Template |
+|---------|------------|-------------------|----------------|-------------|
+| **moto** | 46 files | **0** | **0** | Created |
+| **m2m** | Existing | **0** | **0** | Created |
+| **momoep** | 101 files | **0** | **0** | Created |
+| **mega** | 21 files | **0** | **0** | Created |
+| **mese** | 14 files | **0** | **0** | Created |
+
+### What's Actually Done vs Pending
+
+| Item | Status | Notes |
+|------|--------|-------|
+| CI/CD templates created | ✅ Done | 8 templates + 5 examples on GitHub |
+| CI/CD templates deployed to GitLab | ❌ Not Done | Requires GitLab repo creation |
+| PayGoHub PoC | ✅ Done | Exploratory .NET prototype |
+| Integration tests for m-services | ❌ Not Done | 0% coverage |
+| Pact contract testing | ❌ Not Done | Phase 2 - planned |
+| Performance baselines | ❌ Not Done | No SLAs established |
 
 ### Business Impact
 
@@ -423,5 +526,5 @@ Code Merge → Helm Deploy → E2E Tests (5 min) → Pass/Fail → Issue
 **References:**
 
 - [PowerHub E2E Testing Infrastructure (Dec 17, 2025)](https://git.plugintheworld.com/db-dev/solarhub/-/tree/AFAT-2290-E2E/script/eric/e2e_perf)
-- [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/master/script/eric/release_quality/README.md)
+- [Release Quality README](https://git.plugintheworld.com/db-dev/solarhub/-/blob/AFAT-2290-E2E/script/eric/release_quality/README.md)
 - [QA Wiki](https://git.plugintheworld.com/db-dev/qa/-/wikis)
