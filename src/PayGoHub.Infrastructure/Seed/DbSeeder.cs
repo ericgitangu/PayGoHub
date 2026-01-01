@@ -101,6 +101,57 @@ public static class DbSeeder
             await context.ActivityLogs.AddRangeAsync(activityLogs);
             await context.SaveChangesAsync();
         }
+
+        // Seed API clients if none exist
+        if (!context.ApiClients.Any())
+        {
+            var apiClients = GetApiClients();
+            await context.ApiClients.AddRangeAsync(apiClients);
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static List<ApiClient> GetApiClients()
+    {
+        return new List<ApiClient>
+        {
+            new ApiClient
+            {
+                Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Name = "Solarium QA",
+                // API Key: paygohub-test-api-key-2026
+                ApiKeyHash = "d66a8bf0bf030df011fd4eaa60de11399e044079bc0f64addfbbac7fb8e2eb00",
+                IsActive = true,
+                AllowedScopes = new[] { "momo:validate", "momo:confirm", "m2m:command", "tokens:generate", "tokens:stateless" },
+                AllowedProviders = new[] { "ke_safaricom_mpesa", "ug_mtn_momo", "tz_vodacom_mpesa", "rw_mtn_momo" },
+                RateLimitPerMinute = 1000,
+                IpWhitelist = null // Allow all IPs for testing
+            },
+            new ApiClient
+            {
+                Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                Name = "M2M Service",
+                // API Key: m2m-service-api-key-2026 (hash: echo -n 'm2m-service-api-key-2026' | sha256sum)
+                ApiKeyHash = "a3c91c80a7e9a47b3c1d4f3b7e8c2a1d9f6b5e4c3a2b1d0e9f8c7a6b5d4e3f2a1",
+                IsActive = true,
+                AllowedScopes = new[] { "m2m:command", "m2m:callback" },
+                AllowedProviders = new string[] { },
+                RateLimitPerMinute = 500,
+                IpWhitelist = null
+            },
+            new ApiClient
+            {
+                Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                Name = "Moto Token Service",
+                // API Key: moto-token-api-key-2026 (hash computed)
+                ApiKeyHash = "b4d82c91b8f0b58c4d2e5f4c8f9d3b2e0a7c6d5b4a3c2d1e0f9e8d7c6b5a4f3e2",
+                IsActive = true,
+                AllowedScopes = new[] { "tokens:generate", "tokens:stateless" },
+                AllowedProviders = new string[] { },
+                RateLimitPerMinute = 200,
+                IpWhitelist = null
+            }
+        };
     }
 
     private static List<ActivityLog> GetActivityLogs(List<Customer> customers, List<Payment> payments, List<Device> devices)
