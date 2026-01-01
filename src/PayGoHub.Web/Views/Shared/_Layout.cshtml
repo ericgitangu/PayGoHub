@@ -76,9 +76,23 @@
                         </li>
                     </ul>
                 </div>
+
+                <div class="nav-section mt-3">
+                    <span class="nav-section-title text-muted small text-uppercase px-3">Integration</span>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "MServices" ? "active" : "")" asp-controller="MServices" asp-action="Index">
+                                <i class="bi bi-plug-fill me-2"></i> M-Services
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </nav>
 
             <div class="sidebar-footer p-3 border-top border-secondary mt-auto">
+                <a class="nav-link text-muted" href="/api-docs" target="_blank">
+                    <i class="bi bi-file-code me-2"></i> API Docs
+                </a>
                 <a class="nav-link @(ViewData["ActivePage"]?.ToString() == "Settings" ? "active" : "") text-muted" asp-controller="Home" asp-action="Settings">
                     <i class="bi bi-gear-fill me-2"></i> Settings
                 </a>

@@ -1,0 +1,313 @@
+@{
+    Layout = null;
+    var returnUrl = ViewData["ReturnUrl"]?.ToString() ?? "/dashboard";
+}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO Meta Tags -->
+    <title>PayGoHub - M-Services Integration Platform for Solar PAYG</title>
+    <meta name="description" content="PayGoHub is the M-Services integration platform for Solarium, powering Pay-As-You-Go solar solutions across Africa with MoMo payments, M2M device commands, token generation, and SMS gateway services." />
+    <meta name="keywords" content="PayGoHub, Solarium, PAYG, Pay-As-You-Go, Solar, M-Services, MoMo, M-Pesa, MTN Mobile Money, M2M, Token Generation, SMS Gateway, Africa, Kenya, Uganda, Tanzania, Rwanda, Nigeria, Zambia" />
+    <meta name="author" content="Plug in The World" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://paygohub-web-qa.fly.dev/" />
+    <meta property="og:title" content="PayGoHub - M-Services Integration Platform" />
+    <meta property="og:description" content="Powering Pay-As-You-Go solar solutions across Africa with seamless MoMo payments, M2M device commands, and token generation." />
+    <meta property="og:image" content="https://paygohub-web-qa.fly.dev/images/logo.png" />
+    <meta property="og:site_name" content="PayGoHub" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://paygohub-web-qa.fly.dev/" />
+    <meta name="twitter:title" content="PayGoHub - M-Services Integration Platform" />
+    <meta name="twitter:description" content="Powering Pay-As-You-Go solar solutions across Africa with seamless MoMo payments, M2M device commands, and token generation." />
+    <meta name="twitter:image" content="https://paygohub-web-qa.fly.dev/images/logo.png" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://paygohub-web-qa.fly.dev/" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#667eea" />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <style>
+        :root {
+            --gradient-start: #667eea;
+            --gradient-end: #764ba2;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .landing-container {
+            max-width: 1200px;
+            width: 100%;
+            padding: 2rem;
+        }
+
+        .hero-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo-container {
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a8b5ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #8892b0;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            line-height: 1.8;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-icon.momo { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+        .feature-icon.m2m { background: rgba(13, 202, 240, 0.15); color: #0dcaf0; }
+        .feature-icon.moto { background: rgba(25, 135, 84, 0.15); color: #198754; }
+        .feature-icon.mega { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+
+        .feature-title {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-desc {
+            color: #8892b0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .login-section {
+            text-align: center;
+        }
+
+        .google-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            color: #3c4043;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .google-btn:hover {
+            background: #f8f9fa;
+            color: #3c4043;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .google-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .security-note {
+            margin-top: 1.5rem;
+            color: #8892b0;
+            font-size: 0.85rem;
+        }
+
+        .security-note i {
+            color: #198754;
+        }
+
+        .footer-text {
+            margin-top: 3rem;
+            text-align: center;
+            color: #5a6a8a;
+            font-size: 0.85rem;
+        }
+
+        .market-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .market-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.8rem;
+            color: #a8b5ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="landing-container">
+        <div class="hero-section">
+            <div class="logo-container">
+                <div class="logo">
+                    <i class="bi bi-sun-fill"></i>
+                </div>
+            </div>
+            <h1 class="hero-title">PayGoHub</h1>
+            <p class="hero-subtitle">
+                M-Services Integration Platform for Solarium - Powering Pay-As-You-Go solar solutions
+                across Africa with seamless MoMo payments, M2M device commands, and token generation.
+            </p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon momo">
+                    <i class="bi bi-phone"></i>
+                </div>
+                <h5 class="feature-title">MoMo Payments</h5>
+                <p class="feature-desc">
+                    Integrated mobile money validation and confirmation for M-Pesa, MTN MoMo,
+                    and other regional providers across East Africa.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon m2m">
+                    <i class="bi bi-broadcast"></i>
+                </div>
+                <h5 class="feature-title">M2M Commands</h5>
+                <p class="feature-desc">
+                    Real-time device command delivery with callback notifications for unlock tokens,
+                    sync operations, and device resets.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon moto">
+                    <i class="bi bi-key"></i>
+                </div>
+                <h5 class="feature-title">Token Generation (Moto)</h5>
+                <p class="feature-desc">
+                    Stateless and stateful PAYG token generation for solar controllers with
+                    support for multiple device types and encodings.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon mega">
+                    <i class="bi bi-chat-dots"></i>
+                </div>
+                <h5 class="feature-title">SMS Gateway (Mega)</h5>
+                <p class="feature-desc">
+                    Unified SMS delivery with delivery report callbacks for customer notifications
+                    and payment confirmations.
+                </p>
+            </div>
+        </div>
+
+        <div class="login-section">
+            <a href="@Url.Action("Login", "Account", new { returnUrl })" class="google-btn">
+                <svg viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+            </a>
+            <p class="security-note">
+                <i class="bi bi-shield-check me-1"></i>
+                Secure authentication powered by Google OAuth 2.0
+            </p>
+        </div>
+
+        <div class="market-badges">
+            <span class="market-badge">Uganda</span>
+            <span class="market-badge">Kenya</span>
+            <span class="market-badge">Tanzania</span>
+            <span class="market-badge">Rwanda</span>
+            <span class="market-badge">Nigeria</span>
+            <span class="market-badge">Zambia</span>
+            <span class="market-badge">Mozambique</span>
+            <span class="market-badge">Benin</span>
+        </div>
+
+        <p class="footer-text">
+            &copy; @DateTime.Now.Year PayGoHub by Plug in The World. Powering Africa, one solar home at a time.
+        </p>
+    </div>
+</body>
+</html>

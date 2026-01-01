@@ -5,11 +5,13 @@ public class DeviceDto
     public Guid Id { get; set; }
     public string SerialNumber { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string StatusClass { get; set; } = string.Empty;
     public int BatteryHealth { get; set; }
     public DateTime? LastSyncDate { get; set; }
     public string? CustomerName { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public class CreateDeviceDto

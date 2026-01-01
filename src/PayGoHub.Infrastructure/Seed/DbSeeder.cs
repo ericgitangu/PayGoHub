@@ -8,7 +8,7 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(PayGoHubDbContext context)
     {
-        // Seed providers first
+        // Seed providers first (always needed)
         if (!context.Providers.Any())
         {
             var providers = GetProviders();
@@ -16,28 +16,109 @@ public static class DbSeeder
             await context.SaveChangesAsync();
         }
 
-        if (context.Customers.Any())
-            return;
+        // Seed customers if none exist
+        List<Customer> customers;
+        if (!context.Customers.Any())
+        {
+            customers = GetMultiMarketCustomers();
+            await context.Customers.AddRangeAsync(customers);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            // Load existing customers for relationships
+            customers = context.Customers.OrderBy(c => c.CreatedAt).ToList();
 
-        var customers = GetMultiMarketCustomers();
-        await context.Customers.AddRangeAsync(customers);
-        await context.SaveChangesAsync();
+            // Add missing 20th customer if we only have 19 (from older seed)
+            if (customers.Count == 19)
+            {
+                var missingCustomer = new Customer
+                {
+                    Id = Guid.NewGuid(),
+                    FirstName = "Mulenga",
+                    LastName = "CHIPILI",
+                    Email = "mulenga.chipili@email.zm",
+                    PhoneNumber = "+260973456789",
+                    Region = "Copperbelt",
+                    District = "Kitwe",
+                    Address = "Obote Avenue 123",
+                    Status = CustomerStatus.Active,
+                    Country = "ZM",
+                    Currency = "ZMW"
+                };
+                await context.Customers.AddAsync(missingCustomer);
+                await context.SaveChangesAsync();
+                customers.Add(missingCustomer);
+            }
+        }
 
-        var devices = GetDevices();
-        await context.Devices.AddRangeAsync(devices);
-        await context.SaveChangesAsync();
+        // Seed devices if none exist
+        List<Device> devices;
+        if (!context.Devices.Any())
+        {
+            devices = GetDevices();
+            await context.Devices.AddRangeAsync(devices);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            devices = context.Devices.OrderBy(d => d.CreatedAt).ToList();
+        }
 
-        var installations = GetInstallations(customers, devices);
-        await context.Installations.AddRangeAsync(installations);
-        await context.SaveChangesAsync();
+        // Seed installations if none exist
+        if (!context.Installations.Any() && customers.Count >= 12 && devices.Count >= 6)
+        {
+            var installations = GetInstallations(customers, devices);
+            await context.Installations.AddRangeAsync(installations);
+            await context.SaveChangesAsync();
+        }
 
-        var loans = GetLoans(customers);
-        await context.Loans.AddRangeAsync(loans);
-        await context.SaveChangesAsync();
+        // Seed loans if none exist
+        if (!context.Loans.Any() && customers.Count >= 19)
+        {
+            var loans = GetLoans(customers);
+            await context.Loans.AddRangeAsync(loans);
+            await context.SaveChangesAsync();
+        }
 
-        var payments = GetMultiMarketPayments(customers);
-        await context.Payments.AddRangeAsync(payments);
-        await context.SaveChangesAsync();
+        // Seed payments if none exist
+        List<Payment> payments;
+        if (!context.Payments.Any() && customers.Count >= 20)
+        {
+            payments = GetMultiMarketPayments(customers);
+            await context.Payments.AddRangeAsync(payments);
+            await context.SaveChangesAsync();
+        }
+        else
+        {
+            payments = context.Payments.OrderBy(p => p.CreatedAt).ToList();
+        }
+
+        // Seed activity logs if none exist
+        if (!context.ActivityLogs.Any() && customers.Count >= 17 && payments.Count >= 9 && devices.Count >= 2)
+        {
+            var activityLogs = GetActivityLogs(customers, payments, devices);
+            await context.ActivityLogs.AddRangeAsync(activityLogs);
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static List<ActivityLog> GetActivityLogs(List<Customer> customers, List<Payment> payments, List<Device> devices)
+    {
+        var now = DateTime.UtcNow;
+        return new List<ActivityLog>
+        {
+            new ActivityLog { ActivityType = "payment_received", Title = "Payment Received", Description = $"Payment of 250,000 UGX received from {customers[0].FirstName} {customers[0].LastName}", EntityType = "Payment", EntityId = payments[0].Id, Status = "success", PerformedBy = "System", IconClass = "ri-money-dollar-circle-line", ColorClass = "success", CreatedAt = now.AddMinutes(-5) },
+            new ActivityLog { ActivityType = "payment_received", Title = "Payment Received", Description = $"Payment of 5,000 KES received from {customers[4].FirstName} {customers[4].LastName}", EntityType = "Payment", EntityId = payments[2].Id, Status = "success", PerformedBy = "System", IconClass = "ri-money-dollar-circle-line", ColorClass = "success", CreatedAt = now.AddHours(-1) },
+            new ActivityLog { ActivityType = "device_activated", Title = "Device Activated", Description = $"Device {devices[0].SerialNumber} activated for customer {customers[0].FirstName} {customers[0].LastName}", EntityType = "Device", EntityId = devices[0].Id, Status = "success", PerformedBy = "Daniel KIMASSAI", IconClass = "ri-device-line", ColorClass = "primary", CreatedAt = now.AddHours(-2) },
+            new ActivityLog { ActivityType = "token_generated", Title = "Token Generated", Description = $"30-day unlock token generated for device {devices[1].SerialNumber}", EntityType = "Device", EntityId = devices[1].Id, Status = "success", PerformedBy = "Albert LUMU", IconClass = "ri-key-2-line", ColorClass = "info", CreatedAt = now.AddHours(-3) },
+            new ActivityLog { ActivityType = "customer_registered", Title = "New Customer", Description = $"New customer {customers[8].FirstName} {customers[8].LastName} registered in Nigeria", EntityType = "Customer", EntityId = customers[8].Id, Status = "success", PerformedBy = "System", IconClass = "ri-user-add-line", ColorClass = "success", CreatedAt = now.AddHours(-4) },
+            new ActivityLog { ActivityType = "payment_failed", Title = "Payment Failed", Description = $"Payment of 30,000 MZN failed for {customers[16].FirstName} {customers[16].LastName}", EntityType = "Payment", EntityId = payments[8].Id, Status = "failed", PerformedBy = "System", IconClass = "ri-close-circle-line", ColorClass = "danger", CreatedAt = now.AddHours(-5) },
+            new ActivityLog { ActivityType = "installation_scheduled", Title = "Installation Scheduled", Description = $"Installation scheduled for {customers[4].FirstName} {customers[4].LastName} in Nairobi", EntityType = "Installation", Status = "pending", PerformedBy = "Boniface NTARANGWI", IconClass = "ri-calendar-check-line", ColorClass = "warning", CreatedAt = now.AddHours(-6) },
+            new ActivityLog { ActivityType = "sms_sent", Title = "SMS Sent", Description = $"Payment reminder sent to {customers[1].FirstName} {customers[1].LastName}", EntityType = "Customer", EntityId = customers[1].Id, Status = "success", PerformedBy = "System", IconClass = "ri-message-2-line", ColorClass = "info", CreatedAt = now.AddHours(-8) },
+            new ActivityLog { ActivityType = "loan_approved", Title = "Loan Approved", Description = $"Loan of 550,000 NGN approved for {customers[8].FirstName} {customers[8].LastName}", EntityType = "Loan", Status = "success", PerformedBy = "Eric GITANGU", IconClass = "ri-bank-card-line", ColorClass = "success", CreatedAt = now.AddDays(-1) },
+            new ActivityLog { ActivityType = "m2m_command", Title = "M2M Command Sent", Description = $"Unlock command sent to device {devices[0].SerialNumber}", EntityType = "Device", EntityId = devices[0].Id, Status = "success", PerformedBy = "System", IconClass = "ri-send-plane-line", ColorClass = "primary", CreatedAt = now.AddDays(-1).AddHours(-2) }
+        };
     }
 
     private static List<Provider> GetProviders()
@@ -105,7 +186,8 @@ public static class DbSeeder
 
             // Zambia Customers
             new Customer { Id = Guid.NewGuid(), FirstName = "Chanda", LastName = "MWAPE", Email = "chanda.mwape@email.zm", PhoneNumber = "+260971234567", Region = "Lusaka", District = "Lusaka Central", Address = "Cairo Road 456", Status = CustomerStatus.Active, Country = "ZM", Currency = "ZMW" },
-            new Customer { Id = Guid.NewGuid(), FirstName = "Bwalya", LastName = "MUMBA", Email = "bwalya.mumba@email.zm", PhoneNumber = "+260962345678", Region = "Copperbelt", District = "Ndola", Address = "Broadway Avenue", Status = CustomerStatus.Active, Country = "ZM", Currency = "ZMW" }
+            new Customer { Id = Guid.NewGuid(), FirstName = "Bwalya", LastName = "MUMBA", Email = "bwalya.mumba@email.zm", PhoneNumber = "+260962345678", Region = "Copperbelt", District = "Ndola", Address = "Broadway Avenue", Status = CustomerStatus.Active, Country = "ZM", Currency = "ZMW" },
+            new Customer { Id = Guid.NewGuid(), FirstName = "Mulenga", LastName = "CHIPILI", Email = "mulenga.chipili@email.zm", PhoneNumber = "+260973456789", Region = "Copperbelt", District = "Kitwe", Address = "Obote Avenue 123", Status = CustomerStatus.Active, Country = "ZM", Currency = "ZMW" }
         };
     }
 

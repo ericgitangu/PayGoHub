@@ -1,0 +1,186 @@
+@{
+    ViewData["Title"] = "Token Generator - MOTO";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">M-Services</a></li>
+            <li class="breadcrumb-item active">Token Generator</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-key-fill me-2"></i>MOTO Token Generator</h5>
+                </div>
+                <div class="card-body">
+                    <form id="tokenForm">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label">Device Serial</label>
+                            <input type="text" class="form-control" id="device" name="device"
+                                   placeholder="e.g., SCBLNX/A/BT/240300126005" required>
+                            <div class="form-text">Device identifier (serial number)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Command</label>
+                            <select class="form-select" id="command" name="command" required>
+                                <option value="unlock_relative">unlock_relative (days)</option>
+                                <option value="unlock_absolute">unlock_absolute</option>
+                                <option value="lock">lock</option>
+                                <option value="unlock_forever">unlock_forever</option>
+                                <option value="demo_mode">demo_mode</option>
+                                <option value="calibrate">calibrate</option>
+                                <option value="counter_sync">counter_sync</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Payload</label>
+                            <input type="text" class="form-control" id="payload" name="payload"
+                                   placeholder="e.g., 30 (days for unlock_relative)">
+                            <div class="form-text">Command payload (days, value, etc.)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sequence Number</label>
+                            <input type="number" class="form-control" id="sequenceNumber" name="sequenceNumber"
+                                   value="1" min="1" required>
+                            <div class="form-text">Token counter (auto-incremented)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Device Secret (Hex)</label>
+                            <input type="text" class="form-control font-monospace" id="secret" name="secret"
+                                   placeholder="e.g., a29ab82edc5fbbc41ec9530f6dac86b1" required>
+                            <div class="form-text">32-character hex device secret</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Encoding (Optional)</label>
+                            <input type="text" class="form-control" id="encoding" name="encoding"
+                                   placeholder="e.g., +0-9++space3">
+                            <div class="form-text">Token encoding format</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100" id="generateBtn">
+                            <i class="bi bi-lightning-charge me-1"></i> Generate Token
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Result</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContainer" class="d-none">
+                        <div id="successResult" class="d-none">
+                            <div class="alert alert-success">
+                                <h6 class="alert-heading"><i class="bi bi-check-circle me-1"></i> Token Generated</h6>
+                            </div>
+                            <div class="bg-dark text-success p-4 rounded-3 text-center mb-3">
+                                <h2 class="font-monospace mb-0" id="tokenValue"></h2>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted">Sequence</small>
+                                    <h5 id="seqNumber" class="mb-0"></h5>
+                                </div>
+                                <div class="col-6">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="copyToken()">
+                                        <i class="bi bi-clipboard me-1"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="errorResult" class="d-none">
+                            <div class="alert alert-danger">
+                                <h6 class="alert-heading"><i class="bi bi-x-circle me-1"></i> Error</h6>
+                                <p class="mb-0" id="errorMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="placeholder" class="text-center text-muted py-5">
+                        <i class="bi bi-key display-4"></i>
+                        <p class="mt-2">Fill the form and click Generate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Reference -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-code-slash me-2"></i>API Reference</h6>
+                </div>
+                <div class="card-body">
+                    <code class="d-block mb-2">POST /api/v1/tokens/stateless/generate</code>
+                    <pre class="bg-light p-3 rounded small mb-0"><code>{
+  "device": "SCBLNX/A/BT/240300126005",
+  "command": "unlock_relative",
+  "payload": "30",
+  "sequence_number": 1,
+  "secret": "a29ab82edc5fbbc41ec9530f6dac86b1"
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('tokenForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating...';
+
+    const formData = new FormData(this);
+    const data = new URLSearchParams(formData);
+
+    try {
+        const response = await fetch('@Url.Action("GenerateToken")', {
+            method: 'POST',
+            body: data
+        });
+        const result = await response.json();
+
+        document.getElementById('placeholder').classList.add('d-none');
+        document.getElementById('resultContainer').classList.remove('d-none');
+
+        if (result.status === 'ok') {
+            document.getElementById('successResult').classList.remove('d-none');
+            document.getElementById('errorResult').classList.add('d-none');
+            document.getElementById('tokenValue').textContent = result.token;
+            document.getElementById('seqNumber').textContent = result.sequenceNumber;
+        } else {
+            document.getElementById('successResult').classList.add('d-none');
+            document.getElementById('errorResult').classList.remove('d-none');
+            document.getElementById('errorMessage').textContent = result.error;
+        }
+    } catch (err) {
+        document.getElementById('errorResult').classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = err.message;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-lightning-charge me-1"></i> Generate Token';
+    }
+});
+
+function copyToken() {
+    const token = document.getElementById('tokenValue').textContent;
+    navigator.clipboard.writeText(token.replace(/\s/g, ''));
+    alert('Token copied to clipboard!');
+}
+</script>
+}

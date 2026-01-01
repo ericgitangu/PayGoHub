@@ -1,0 +1,282 @@
+@using PayGoHub.Web.ViewModels
+@model PaymentDetailsViewModel
+@{
+    ViewData["Title"] = $"Payment: {Model.Payment.Reference}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a asp-action="Index">Payments</a></li>
+                <li class="breadcrumb-item active">@Model.Payment.Reference</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0">Payment Details</h4>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Payments
+    </a>
+</div>
+
+<!-- Result Messages -->
+@if (TempData["ValidationSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Validation Successful!</strong> Customer: @TempData["CustomerName"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ValidationError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Validation Failed:</strong> @TempData["ValidationError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ConfirmationSuccess"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-cash-coin me-2"></i>
+        <strong>Payment Confirmed!</strong> The payment has been successfully processed.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["ConfirmationError"] != null)
+{
+    <div class="alert alert-@(TempData["IsDuplicate"] != null ? "warning" : "danger") alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        @if (TempData["IsDuplicate"] != null)
+        {
+            <strong>Duplicate Payment:</strong>
+        }
+        else
+        {
+            <strong>Confirmation Failed:</strong>
+        }
+        @TempData["ConfirmationError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- Payment Information Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="mb-0"><i class="bi bi-credit-card me-2"></i>Payment Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Reference</label>
+                    <div class="fw-medium"><code>@Model.Payment.Reference</code></div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Amount</label>
+                    <div class="fw-bold text-success fs-4">@Model.Payment.Currency @Model.Payment.Amount.ToString("N2")</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Status</label>
+                    <div><span class="badge bg-@Model.Payment.StatusClass fs-6">@Model.Payment.Status</span></div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Method</label>
+                    <div><span class="badge bg-@(Model.Payment.Method == "Mpesa" ? "success" : "primary")-subtle text-@(Model.Payment.Method == "Mpesa" ? "success" : "primary")">@Model.Payment.Method</span></div>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Payment.MpesaReceiptNumber))
+                {
+                    <div class="mb-3">
+                        <label class="text-muted small">M-Pesa Receipt</label>
+                        <div class="fw-medium"><code>@Model.Payment.MpesaReceiptNumber</code></div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.Payment.ProviderKey))
+                {
+                    <div class="mb-3">
+                        <label class="text-muted small">Provider</label>
+                        <div class="fw-medium">@(PaymentDetailsViewModel.ProviderKeys.GetValueOrDefault(Model.Payment.ProviderKey, Model.Payment.ProviderKey))</div>
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="text-muted small">Payment Date</label>
+                    <div class="fw-medium">@(Model.Payment.PaidAt?.ToString("MMM dd, yyyy HH:mm") ?? Model.Payment.PaymentDate?.ToString("MMM dd, yyyy") ?? "Pending")</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Created</label>
+                    <div class="fw-medium">@Model.Payment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Information Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="mb-0"><i class="bi bi-person me-2"></i>Customer Information</h6>
+            </div>
+            <div class="card-body">
+                @if (Model.Customer != null)
+                {
+                    <div class="text-center mb-3">
+                        <div class="avatar-lg bg-primary-subtle text-primary rounded-circle mx-auto d-flex align-items-center justify-content-center" style="width: 64px; height: 64px; font-size: 24px;">
+                            @Model.Payment.CustomerInitials
+                        </div>
+                        <h5 class="mt-2 mb-0">@Model.Customer.FirstName @Model.Customer.LastName</h5>
+                        <small class="text-muted">@Model.Customer.Email</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Phone</label>
+                        <div class="fw-medium">@Model.Customer.PhoneNumber</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Account Number</label>
+                        <div class="fw-medium"><code>@Model.Customer.AccountNumber</code></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Region</label>
+                        <div class="fw-medium">@Model.Customer.Region</div>
+                    </div>
+                    <a asp-controller="Customers" asp-action="Details" asp-route-id="@Model.Customer.Id" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-person me-1"></i> View Customer
+                    </a>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-person-x fs-1 mb-2 d-block"></i>
+                        <p class="mb-0">Customer not found</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- MoMo Actions Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="mb-0"><i class="bi bi-phone me-2"></i>MoMo Integration</h6>
+            </div>
+            <div class="card-body">
+                <!-- Validation Form -->
+                <div class="mb-4">
+                    <h6 class="text-muted small mb-3">VALIDATE PAYMENT</h6>
+                    <form asp-action="ValidatePayment" method="post">
+                        <input type="hidden" name="id" value="@Model.Payment.Id" />
+                        <input type="hidden" name="reference" value="@Model.Payment.Reference" />
+
+                        <div class="mb-2">
+                            <select name="providerKey" class="form-select form-select-sm">
+                                @foreach (var provider in PaymentDetailsViewModel.ProviderKeys)
+                                {
+                                    <option value="@provider.Key" selected="@(Model.Payment.ProviderKey == provider.Key)">@provider.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <select name="currency" class="form-select form-select-sm">
+                                    @foreach (var currency in PaymentDetailsViewModel.Currencies)
+                                    {
+                                        <option value="@currency.Key" selected="@(Model.Payment.Currency == currency.Key)">@currency.Key</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="amount" class="form-control form-control-sm" value="@Model.Payment.Amount" step="0.01" />
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" name="businessAccount" class="form-control form-control-sm" placeholder="Business Account (Paybill)" value="544544" />
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary btn-sm w-100" @(Model.CanValidate ? "" : "disabled")>
+                            <i class="bi bi-check2-circle me-1"></i> Validate
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Confirmation Form -->
+                <div>
+                    <h6 class="text-muted small mb-3">CONFIRM PAYMENT</h6>
+                    <form asp-action="ConfirmPayment" method="post">
+                        <input type="hidden" name="id" value="@Model.Payment.Id" />
+                        <input type="hidden" name="reference" value="@Model.Payment.Reference" />
+
+                        <div class="mb-2">
+                            <select name="providerKey" class="form-select form-select-sm">
+                                @foreach (var provider in PaymentDetailsViewModel.ProviderKeys)
+                                {
+                                    <option value="@provider.Key" selected="@(Model.Payment.ProviderKey == provider.Key)">@provider.Value</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <select name="currency" class="form-select form-select-sm">
+                                    @foreach (var currency in PaymentDetailsViewModel.Currencies)
+                                    {
+                                        <option value="@currency.Key" selected="@(Model.Payment.Currency == currency.Key)">@currency.Key</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="amount" class="form-control form-control-sm" value="@Model.Payment.Amount" step="0.01" />
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" name="businessAccount" class="form-control form-control-sm" placeholder="Business Account" value="544544" />
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" name="providerTx" class="form-control form-control-sm" placeholder="Provider TX (M-Pesa Receipt)" value="@Model.Payment.MpesaReceiptNumber" required />
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <input type="text" name="senderPhone" class="form-control form-control-sm" placeholder="Sender Phone" />
+                            </div>
+                            <div class="col-6">
+                                <input type="text" name="senderName" class="form-control form-control-sm" placeholder="Sender Name" />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm w-100" @(Model.CanConfirm ? "" : "disabled")>
+                            <i class="bi bi-cash-coin me-1"></i> Confirm Payment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            @if (TempData["ValidationSuccess"] != null)
+            {
+                <text>
+                PayGoHub.notifySuccess('Validation Successful', 'Payment validated for @TempData["CustomerName"]');
+                </text>
+            }
+            @if (TempData["ValidationError"] != null)
+            {
+                <text>
+                PayGoHub.notifyError('Validation Failed', '@TempData["ValidationError"]');
+                </text>
+            }
+            @if (TempData["ConfirmationSuccess"] != null)
+            {
+                <text>
+                PayGoHub.notifySuccess('Payment Confirmed', 'Payment has been successfully processed');
+                </text>
+            }
+            @if (TempData["ConfirmationError"] != null)
+            {
+                <text>
+                PayGoHub.notify('Confirmation Failed', '@TempData["ConfirmationError"]', '@(TempData["IsDuplicate"] != null ? "warning" : "error")');
+                </text>
+            }
+        });
+    </script>
+}

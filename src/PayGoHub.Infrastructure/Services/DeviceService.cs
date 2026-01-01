@@ -27,6 +27,7 @@ public class DeviceService : IDeviceService
                 Id = d.Id,
                 SerialNumber = d.SerialNumber,
                 Model = d.Model,
+                Type = d.Type.ToString(),
                 Status = d.Status.ToString(),
                 StatusClass = GetStatusClass(d.Status),
                 BatteryHealth = d.BatteryHealth,
@@ -51,11 +52,13 @@ public class DeviceService : IDeviceService
             Id = device.Id,
             SerialNumber = device.SerialNumber,
             Model = device.Model,
+            Type = device.Type.ToString(),
             Status = device.Status.ToString(),
             StatusClass = GetStatusClass(device.Status),
             BatteryHealth = device.BatteryHealth,
             LastSyncDate = device.LastSyncDate,
-            CustomerName = device.Installation?.Customer?.FullName
+            CustomerName = device.Installation?.Customer?.FullName,
+            CreatedAt = device.CreatedAt
         };
     }
 
@@ -78,6 +81,7 @@ public class DeviceService : IDeviceService
             Id = device.Id,
             SerialNumber = device.SerialNumber,
             Model = device.Model,
+            Type = device.Type.ToString(),
             Status = device.Status.ToString(),
             StatusClass = GetStatusClass(device.Status),
             BatteryHealth = device.BatteryHealth

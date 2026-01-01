@@ -1,0 +1,202 @@
+@{
+    ViewData["Title"] = "M-Services";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">M-Services Integration</h1>
+            <p class="text-muted mb-0">Test and demo M-Services APIs (Moto, Mega, MomoEP, M2M)</p>
+        </div>
+        <a href="/api-docs" target="_blank" class="btn btn-outline-primary">
+            <i class="bi bi-file-code me-1"></i> API Documentation
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- MOTO - Token Generation -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-key-fill text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">MOTO</h5>
+                            <small class="text-muted">Token Generation</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        Generate PAYG tokens using LibToken Paygee algorithm. Supports stateless and stateful token generation.
+                    </p>
+                    <div class="mb-3">
+                        <span class="badge bg-success-subtle text-success me-1">unlock_relative</span>
+                        <span class="badge bg-primary-subtle text-primary me-1">unlock_absolute</span>
+                        <span class="badge bg-warning-subtle text-warning">lock</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a asp-action="TokenGenerator" class="btn btn-primary w-100">
+                        <i class="bi bi-lightning-charge me-1"></i> Generate Token
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEGA - SMS Gateway -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-chat-dots-fill text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">MEGA</h5>
+                            <small class="text-muted">SMS Gateway</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        Send SMS messages for token delivery and customer notifications. Supports duplicate detection.
+                    </p>
+                    <div class="mb-3">
+                        <span class="badge bg-info-subtle text-info me-1">Infobip</span>
+                        <span class="badge bg-secondary-subtle text-secondary me-1">AfricasTalking</span>
+                        <span class="badge bg-dark-subtle text-dark">Kannel</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a asp-action="SmsGateway" class="btn btn-success w-100">
+                        <i class="bi bi-send me-1"></i> Send SMS
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- MOMOEP - Payment Validation -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-warning bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-credit-card-fill text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">MOMOEP</h5>
+                            <small class="text-muted">Payment Validation</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        Validate and confirm mobile money payments. Supports multiple providers per market.
+                    </p>
+                    <div class="mb-3">
+                        <span class="badge bg-danger-subtle text-danger me-1">M-Pesa</span>
+                        <span class="badge bg-warning-subtle text-warning me-1">MTN MoMo</span>
+                        <span class="badge bg-info-subtle text-info">Airtel Money</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a asp-action="PaymentValidation" class="btn btn-warning w-100">
+                        <i class="bi bi-check-circle me-1"></i> Validate Payment
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- M2M - Device Commands -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-info bg-opacity-10 rounded-3 p-3 me-3">
+                            <i class="bi bi-cpu-fill text-info fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="card-title mb-0">M2M</h5>
+                            <small class="text-muted">Device Commands</small>
+                        </div>
+                    </div>
+                    <p class="card-text text-muted small">
+                        Send commands to devices via M2M interface. Supports callbacks for command status updates.
+                    </p>
+                    <div class="mb-3">
+                        <span class="badge bg-primary-subtle text-primary me-1">unlock_token</span>
+                        <span class="badge bg-secondary-subtle text-secondary me-1">sync</span>
+                        <span class="badge bg-dark-subtle text-dark">reset</span>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a asp-action="DeviceCommands" class="btn btn-info w-100">
+                        <i class="bi bi-terminal me-1"></i> Send Command
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Endpoints Reference -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-code-slash me-2"></i>API Endpoints Reference</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Endpoint</th>
+                            <th>Method</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge bg-primary">MOTO</span></td>
+                            <td><code>/api/v1/tokens/stateless/generate</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Generate stateless PAYG token</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-primary">MOTO</span></td>
+                            <td><code>/api/v1/tokens/generate</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Generate stateful token (stored)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-success">MEGA</span></td>
+                            <td><code>/send_short_message</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Send SMS message</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-warning text-dark">MOMOEP</span></td>
+                            <td><code>/api/v1/{provider_key}/validate</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Validate payment account</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-warning text-dark">MOMOEP</span></td>
+                            <td><code>/api/v1/{provider_key}/confirm</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Confirm payment transaction</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-info">M2M</span></td>
+                            <td><code>/m2m/create_command</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Create device command</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge bg-info">M2M</span></td>
+                            <td><code>/m2m/callback</code></td>
+                            <td><span class="badge bg-success">POST</span></td>
+                            <td>Handle device callback</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

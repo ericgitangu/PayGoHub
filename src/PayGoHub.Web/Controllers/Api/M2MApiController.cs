@@ -8,7 +8,7 @@ namespace PayGoHub.Web.Controllers.Api;
 /// M2M device command API endpoints
 /// </summary>
 [ApiController]
-[Route("api/m2m")]
+[Route("m2m")]
 [Produces("application/json")]
 public class M2MApiController : ControllerBase
 {
@@ -25,9 +25,9 @@ public class M2MApiController : ControllerBase
     /// Create a new device command
     /// </summary>
     /// <remarks>
-    /// Sample request:
+    /// Sample request (matches solarhub Rails API):
     ///
-    ///     POST /api/m2m/command
+    ///     POST /m2m/command
     ///     {
     ///         "identifier": {
     ///             "kind": "serial",
@@ -47,6 +47,7 @@ public class M2MApiController : ControllerBase
     /// <response code="200">Command created successfully</response>
     /// <response code="401">API key missing or invalid</response>
     [HttpPost("command")]
+    [HttpPost("create_command")]
     [ProducesResponseType(typeof(CommandResponseDto), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateCommand([FromBody] CommandRequestDto request)
     {

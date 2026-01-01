@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PayGoHub.Application.Interfaces;
 
 namespace PayGoHub.Web.Controllers;
 
+[Authorize]
 public class LoansController : Controller
 {
     private readonly ILoanService _loanService;

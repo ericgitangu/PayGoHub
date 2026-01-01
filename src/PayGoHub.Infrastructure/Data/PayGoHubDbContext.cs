@@ -32,6 +32,9 @@ public class PayGoHubDbContext : DbContext
     public DbSet<DeviceCommand> DeviceCommands => Set<DeviceCommand>();
     public DbSet<Token> Tokens => Set<Token>();
 
+    // Activity tracking
+    public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -52,6 +55,13 @@ public class PayGoHubDbContext : DbContext
         modelBuilder.Entity<MomoPaymentTransaction>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<DeviceCommand>().HasQueryFilter(e => e.DeletedAt == null);
         modelBuilder.Entity<Token>().HasQueryFilter(e => e.DeletedAt == null);
+
+        // Activity log configuration
+        modelBuilder.Entity<ActivityLog>().HasQueryFilter(e => e.DeletedAt == null);
+        modelBuilder.Entity<ActivityLog>().HasIndex(e => e.EntityType);
+        modelBuilder.Entity<ActivityLog>().HasIndex(e => e.EntityId);
+        modelBuilder.Entity<ActivityLog>().HasIndex(e => e.EntityIdentifier);
+        modelBuilder.Entity<ActivityLog>().HasIndex(e => e.CreatedAt);
     }
 
     public override int SaveChanges()

@@ -1,3 +1,4 @@
+@using PayGoHub.Web.ViewModels
 @model SearchResultsViewModel
 @{
     ViewData["Title"] = string.IsNullOrEmpty(Model.Query) ? "Search" : $"Search: {Model.Query}";
@@ -135,7 +136,7 @@
                                         <td><code>@payment.Reference</code></td>
                                         <td>@payment.CustomerName</td>
                                         <td class="fw-bold text-success">@payment.Amount.ToString("C")</td>
-                                        <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@(payment.PaymentDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
                                         <td>
                                             <span class="badge @(payment.Status == "Completed" ? "bg-success" : payment.Status == "Pending" ? "bg-warning" : "bg-danger")">
                                                 @payment.Status

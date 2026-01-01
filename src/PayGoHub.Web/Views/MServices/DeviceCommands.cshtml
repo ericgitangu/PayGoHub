@@ -1,0 +1,243 @@
+@{
+    ViewData["Title"] = "Device Commands - M2M";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">M-Services</a></li>
+            <li class="breadcrumb-item active">Device Commands</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-cpu-fill me-2"></i>M2M Device Commands</h5>
+                </div>
+                <div class="card-body">
+                    <form id="commandForm">
+                        @Html.AntiForgeryToken()
+
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <label class="form-label">Identifier Type</label>
+                                <select class="form-select" id="identifierKind" name="identifierKind">
+                                    <option value="serial">Serial</option>
+                                    <option value="imei">IMEI</option>
+                                </select>
+                            </div>
+                            <div class="col-8">
+                                <label class="form-label">Device Identifier</label>
+                                <input type="text" class="form-control" id="identifierValue" name="identifierValue"
+                                       placeholder="e.g., SCBLNX/A/BT/240300126005" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Command</label>
+                            <select class="form-select" id="commandName" name="commandName" required>
+                                <option value="unlock_token">unlock_token</option>
+                                <option value="sync">sync</option>
+                                <option value="reset">reset</option>
+                                <option value="synciv">synciv</option>
+                                <option value="useracct">useracct</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3" id="unlockCodeContainer">
+                            <label class="form-label">Unlock Code</label>
+                            <input type="text" class="form-control font-monospace" id="unlockCode" name="unlockCode"
+                                   placeholder="e.g., 1234-5678-9012-3456">
+                            <div class="form-text">Required for unlock_token command</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Callback URL (Optional)</label>
+                            <input type="url" class="form-control" id="callbackUrl" name="callbackUrl"
+                                   placeholder="https://your-server.com/callback">
+                            <div class="form-text">URL to receive command status updates</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-info w-100" id="sendBtn">
+                            <i class="bi bi-terminal me-1"></i> Send Command
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Command Status Check -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-search me-2"></i>Check Command Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="statusIdentifier" placeholder="Device identifier">
+                        <button class="btn btn-outline-secondary" type="button" onclick="checkStatus()">
+                            <i class="bi bi-arrow-repeat"></i> Check
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Result</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContainer" class="d-none">
+                        <div id="successResult" class="d-none">
+                            <div class="alert alert-success">
+                                <h6 class="alert-heading"><i class="bi bi-check-circle me-1"></i> Command Created</h6>
+                            </div>
+                            <div class="bg-dark text-light p-3 rounded-3 mb-3">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Identifier</small>
+                                        <p class="mb-0 font-monospace" id="cmdIdentifier"></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Status</small>
+                                        <p class="mb-0"><span class="badge bg-warning" id="cmdStatus"></span></p>
+                                    </div>
+                                </div>
+                                <hr class="border-secondary">
+                                <small class="text-muted">Command</small>
+                                <p class="mb-0 font-monospace text-info" id="cmdCommand"></p>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Created At</small>
+                                    <span id="cmdCreatedAt"></span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Delivered At</small>
+                                    <span id="cmdDeliveredAt">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="errorResult" class="d-none">
+                            <div class="alert alert-danger">
+                                <h6 class="alert-heading"><i class="bi bi-x-circle me-1"></i> Error</h6>
+                                <p class="mb-0" id="errorMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="placeholder" class="text-center text-muted py-5">
+                        <i class="bi bi-cpu display-4"></i>
+                        <p class="mt-2">Send a command to a device</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Reference -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-code-slash me-2"></i>API Reference</h6>
+                </div>
+                <div class="card-body">
+                    <code class="d-block mb-2">POST /m2m/create_command</code>
+                    <pre class="bg-light p-3 rounded small mb-0"><code>{
+  "identifier": {
+    "kind": "serial",
+    "value": "SCBLNX/A/BT/240300126005"
+  },
+  "command": {
+    "name": "unlock_token",
+    "details": {
+      "unlock_code": "1234-5678-9012-3456"
+    }
+  },
+  "callback_url": "https://..."
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('commandName').addEventListener('change', function() {
+    const container = document.getElementById('unlockCodeContainer');
+    container.style.display = this.value === 'unlock_token' ? 'block' : 'none';
+});
+
+document.getElementById('commandForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+
+    const formData = new FormData(this);
+    const data = new URLSearchParams(formData);
+
+    try {
+        const response = await fetch('@Url.Action("SendCommand")', {
+            method: 'POST',
+            body: data
+        });
+        const result = await response.json();
+
+        document.getElementById('placeholder').classList.add('d-none');
+        document.getElementById('resultContainer').classList.remove('d-none');
+
+        if (result.error) {
+            document.getElementById('successResult').classList.add('d-none');
+            document.getElementById('errorResult').classList.remove('d-none');
+            document.getElementById('errorMessage').textContent = result.error;
+        } else {
+            document.getElementById('successResult').classList.remove('d-none');
+            document.getElementById('errorResult').classList.add('d-none');
+            document.getElementById('cmdIdentifier').textContent = result.identifier;
+            document.getElementById('cmdStatus').textContent = result.status;
+            document.getElementById('cmdCommand').textContent = result.command;
+            document.getElementById('cmdCreatedAt').textContent = new Date(result.createdAt).toLocaleString();
+            document.getElementById('cmdDeliveredAt').textContent = result.deliveredAt
+                ? new Date(result.deliveredAt).toLocaleString() : '-';
+        }
+    } catch (err) {
+        document.getElementById('errorResult').classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = err.message;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-terminal me-1"></i> Send Command';
+    }
+});
+
+async function checkStatus() {
+    const identifier = document.getElementById('statusIdentifier').value;
+    if (!identifier) return;
+
+    try {
+        const response = await fetch('@Url.Action("GetCommandStatus")?identifier=' + encodeURIComponent(identifier));
+        const result = await response.json();
+
+        document.getElementById('placeholder').classList.add('d-none');
+        document.getElementById('resultContainer').classList.remove('d-none');
+
+        if (result.error) {
+            document.getElementById('successResult').classList.add('d-none');
+            document.getElementById('errorResult').classList.remove('d-none');
+            document.getElementById('errorMessage').textContent = result.error;
+        } else {
+            document.getElementById('successResult').classList.remove('d-none');
+            document.getElementById('errorResult').classList.add('d-none');
+            document.getElementById('cmdIdentifier').textContent = result.identifier;
+            document.getElementById('cmdStatus').textContent = result.status;
+            document.getElementById('cmdCommand').textContent = result.command;
+            document.getElementById('cmdCreatedAt').textContent = new Date(result.createdAt).toLocaleString();
+            document.getElementById('cmdDeliveredAt').textContent = result.deliveredAt
+                ? new Date(result.deliveredAt).toLocaleString() : '-';
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+}
+</script>
+}

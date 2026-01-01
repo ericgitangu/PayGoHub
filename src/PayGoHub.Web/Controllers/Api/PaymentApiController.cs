@@ -6,9 +6,10 @@ namespace PayGoHub.Web.Controllers.Api;
 
 /// <summary>
 /// MoMo payment API endpoints for validation and confirmation
+/// Matches momoep Rails API: /api/v1/:provider_key/validate and /api/v1/:provider_key/confirm
 /// </summary>
 [ApiController]
-[Route("api/payment")]
+[Route("api/v1")]
 [Produces("application/json")]
 public class PaymentApiController : ControllerBase
 {
@@ -25,9 +26,21 @@ public class PaymentApiController : ControllerBase
     /// Validate a customer account for payment
     /// </summary>
     /// <remarks>
-    /// Sample request:
+    /// Sample request (momoep Rails API format):
     ///
-    ///     POST /api/payment/validate
+    ///     POST /api/v1/ke_safaricom_mpesa/validate
+    ///     {
+    ///         "amount": "300",
+    ///         "account_reference": "254543",
+    ///         "business_reference": "544544",
+    ///         "transaction_reference": "unique_tx_id",
+    ///         "subscriber_msisdn": "+254727123123",
+    ///         "subscriber_name": "John Doe"
+    ///     }
+    ///
+    /// Legacy format also supported:
+    ///
+    ///     POST /api/v1/payment/validate
     ///     {
     ///         "reference": "254543",
     ///         "currency": "KES",
@@ -37,30 +50,36 @@ public class PaymentApiController : ControllerBase
     ///         "additional_fields": ["customer_name"]
     ///     }
     /// </remarks>
+    /// <param name="providerKey">Provider key (e.g., ke_safaricom_mpesa)</param>
     /// <param name="request">Validation request</param>
     /// <returns>Validation response with customer info</returns>
-    /// <response code="200">Validation successful</response>
-    /// <response code="404">Reference not found</response>
-    /// <response code="412">Amount validation failed (too low/high)</response>
+    /// <response code="200">Validation successful (status: "01")</response>
+    /// <response code="400">Validation failed (status: "02")</response>
     /// <response code="401">API key missing or invalid</response>
-    [HttpPost("validate")]
+    [HttpPost("{providerKey}/validate")]
+    [HttpPost("payment/validate")]
     [ProducesResponseType(typeof(ValidationResponseDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ValidationResponseDto), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ValidationResponseDto), StatusCodes.Status412PreconditionFailed)]
-    public async Task<IActionResult> Validate([FromBody] ValidationRequestDto request)
+    [ProducesResponseType(typeof(ValidationResponseDto), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Validate([FromRoute] string? providerKey, [FromBody] ValidationRequestDto request)
     {
-        _logger.LogInformation("Payment validation request for reference {Reference}", request.Reference);
+        // Use provider_key from route if present, otherwise from request body
+        if (!string.IsNullOrEmpty(providerKey) && string.IsNullOrEmpty(request.ProviderKey))
+        {
+            request.ProviderKey = providerKey;
+        }
+
+        _logger.LogInformation("Payment validation request for reference {Reference}, provider {Provider}",
+            request.Reference, request.ProviderKey);
 
         var response = await _paymentService.ValidateAsync(request);
 
-        return response.Error switch
+        // Return momoep-compatible response (status "01" = success, "02" = failure)
+        if (response.Status == "error")
         {
-            "reference_not_found" => NotFound(response),
-            "amount_too_low" or "amount_too_high" => StatusCode(StatusCodes.Status412PreconditionFailed, response),
-            "provider_not_found" or "currency_mismatch" => BadRequest(response),
-            _ when response.Status == "error" => BadRequest(response),
-            _ => Ok(response)
-        };
+            return BadRequest(response);
+        }
+
+        return Ok(response);
     }
 
     /// <summary>
@@ -86,13 +105,20 @@ public class PaymentApiController : ControllerBase
     /// <response code="200">Confirmation successful</response>
     /// <response code="409">Duplicate transaction</response>
     /// <response code="401">API key missing or invalid</response>
-    [HttpPost("confirm")]
+    [HttpPost("{providerKey}/confirm")]
+    [HttpPost("payment/confirm")]
     [ProducesResponseType(typeof(ConfirmationResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ConfirmationResponseDto), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Confirm([FromBody] ConfirmationRequestDto request)
+    public async Task<IActionResult> Confirm([FromRoute] string? providerKey, [FromBody] ConfirmationRequestDto request)
     {
-        _logger.LogInformation("Payment confirmation request for reference {Reference}, provider_tx {ProviderTx}",
-            request.Reference, request.ProviderTx);
+        // Use provider_key from route if present, otherwise from request body
+        if (!string.IsNullOrEmpty(providerKey) && string.IsNullOrEmpty(request.ProviderKey))
+        {
+            request.ProviderKey = providerKey;
+        }
+
+        _logger.LogInformation("Payment confirmation request for reference {Reference}, provider_tx {ProviderTx}, provider {Provider}",
+            request.Reference, request.ProviderTx, request.ProviderKey);
 
         var response = await _paymentService.ConfirmAsync(request);
 

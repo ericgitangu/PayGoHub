@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PayGoHub.Application.Interfaces;
 using PayGoHub.Web.Models;
 
 namespace PayGoHub.Web.Controllers;
 
+[Authorize]
 public class HomeController : Controller
 {
     private readonly IDashboardService _dashboardService;

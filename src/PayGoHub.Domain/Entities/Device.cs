@@ -6,6 +6,7 @@ public class Device : BaseEntity
 {
     public string SerialNumber { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
+    public DeviceType Type { get; set; } = DeviceType.SolarPanel;
     public DeviceStatus Status { get; set; } = DeviceStatus.Active;
     public Guid? InstallationId { get; set; }
     public int BatteryHealth { get; set; } = 100;

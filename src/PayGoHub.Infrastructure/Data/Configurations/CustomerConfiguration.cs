@@ -59,6 +59,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             .HasConversion<string>()
             .HasMaxLength(50);
 
+        builder.Property(c => c.AccountNumber)
+            .HasColumnName("account_number")
+            .HasMaxLength(100);
+
         builder.Property(c => c.CreatedAt).HasColumnName("created_at");
         builder.Property(c => c.UpdatedAt).HasColumnName("updated_at");
         builder.Property(c => c.DeletedAt).HasColumnName("deleted_at");

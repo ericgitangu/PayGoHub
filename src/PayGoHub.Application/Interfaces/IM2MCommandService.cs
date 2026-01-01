@@ -21,4 +21,9 @@ public interface IM2MCommandService
     /// Process callback from device
     /// </summary>
     Task ProcessCallbackAsync(CallbackDto callback, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get recent commands for a device
+    /// </summary>
+    Task<IEnumerable<CommandResponseDto>> GetRecentCommandsAsync(string deviceIdentifier, int count = 10, CancellationToken cancellationToken = default);
 }

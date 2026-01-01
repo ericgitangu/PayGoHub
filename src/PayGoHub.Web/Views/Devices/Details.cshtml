@@ -1,0 +1,304 @@
+@using PayGoHub.Web.ViewModels
+@model DeviceDetailsViewModel
+@{
+    ViewData["Title"] = $"Device: {Model.Device.SerialNumber}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a asp-action="Index">Devices</a></li>
+                <li class="breadcrumb-item active">@Model.Device.SerialNumber</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0">Device Details</h4>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Devices
+    </a>
+</div>
+
+<!-- Token/Command Result Messages -->
+@if (TempData["TokenResult"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>
+        <strong>Token Generated:</strong> <code class="user-select-all">@TempData["TokenResult"]</code>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["TokenError"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <strong>Token Error:</strong> @TempData["TokenError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["CommandResult"] != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-send me-2"></i>
+        <strong>Command Sent:</strong> @TempData["CommandName"] - Status: @TempData["CommandResult"]
+        @if (TempData["CommandId"] != null)
+        {
+            <span class="ms-2"><small>ID: @TempData["CommandId"]</small></span>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- Device Information Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="mb-0"><i class="bi bi-cpu me-2"></i>Device Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Serial Number</label>
+                    <div class="fw-medium"><code>@Model.Device.SerialNumber</code></div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Model</label>
+                    <div class="fw-medium">@(Model.Device.Model ?? "N/A")</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Type</label>
+                    <div class="fw-medium">@(Model.Device.Type ?? "N/A")</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Status</label>
+                    <div><span class="badge bg-@Model.Device.StatusClass">@Model.Device.Status</span></div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Customer</label>
+                    <div class="fw-medium">@(Model.Device.CustomerName ?? "Not assigned")</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Battery Health</label>
+                    <div class="d-flex align-items-center">
+                        <div class="progress me-2" style="width: 100px; height: 8px;">
+                            <div class="progress-bar bg-@(Model.Device.BatteryHealth > 80 ? "success" : Model.Device.BatteryHealth > 50 ? "warning" : "danger")"
+                                 style="width: @Model.Device.BatteryHealth%"></div>
+                        </div>
+                        <span class="fw-medium">@Model.Device.BatteryHealth%</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Registered</label>
+                    <div class="fw-medium">@Model.Device.CreatedAt.ToString("MMM dd, yyyy")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Token Generation Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="mb-0"><i class="bi bi-key me-2"></i>Token Generation (Moto)</h6>
+            </div>
+            <div class="card-body">
+                <form asp-action="GenerateToken" method="post">
+                    <input type="hidden" name="id" value="@Model.Device.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Command Type</label>
+                        <select name="command" class="form-select" id="tokenCommand">
+                            @foreach (var cmd in DeviceDetailsViewModel.TokenCommands)
+                            {
+                                <option value="@cmd.Key">@cmd.Value</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Payload</label>
+                        <input type="text" name="payload" class="form-control" id="tokenPayload"
+                               placeholder="e.g., 7 for 7 days" required />
+                        <div class="form-text" id="payloadHelp">Enter number of days for relative unlock</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Device Secret (Optional)</label>
+                        <input type="password" name="secret" class="form-control"
+                               placeholder="Hex secret key (if not stored)" />
+                        <div class="form-text">Leave empty to use stored secret</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-key me-1"></i> Generate Token
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- M2M Command Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-transparent border-0 pb-0">
+                <h6 class="mb-0"><i class="bi bi-broadcast me-2"></i>M2M Commands</h6>
+            </div>
+            <div class="card-body">
+                <form asp-action="SendCommand" method="post">
+                    <input type="hidden" name="id" value="@Model.Device.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Command</label>
+                        <select name="commandName" class="form-select" id="m2mCommand">
+                            @foreach (var cmd in DeviceDetailsViewModel.M2MCommands)
+                            {
+                                <option value="@cmd.Key">@cmd.Value</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="unlockCodeGroup">
+                        <label class="form-label small text-muted">Unlock Code</label>
+                        <input type="text" name="unlockCode" class="form-control" id="unlockCode"
+                               placeholder="Token to send to device" />
+                        <div class="form-text">Required for unlock_token command</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Callback URL (Optional)</label>
+                        <input type="url" name="callbackUrl" class="form-control"
+                               placeholder="https://your-server.com/callback" />
+                        <div class="form-text">Receive command status updates</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="bi bi-send me-1"></i> Send Command
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Commands History -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Commands</h6>
+        <span class="badge bg-secondary">@Model.RecentCommands.Count() command(s)</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="border-0 ps-4">Command ID</th>
+                        <th class="border-0">Command</th>
+                        <th class="border-0">Status</th>
+                        <th class="border-0">Created</th>
+                        <th class="border-0">Delivered</th>
+                        <th class="border-0 pe-4">Response</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.RecentCommands.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox display-6 mb-2 d-block"></i>
+                                <p class="mb-0">No commands sent to this device yet</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var cmd in Model.RecentCommands)
+                        {
+                            var statusClass = cmd.Status switch
+                            {
+                                "completed" => "success",
+                                "pending" => "warning",
+                                "sent" => "info",
+                                "failed" => "danger",
+                                "acknowledged" => "primary",
+                                _ => "secondary"
+                            };
+                            <tr>
+                                <td class="ps-4"><code class="small">@(cmd.CommandId ?? "N/A")</code></td>
+                                <td><code>@cmd.Command</code></td>
+                                <td><span class="badge bg-@statusClass">@cmd.Status</span></td>
+                                <td><small>@cmd.CreatedAt.ToString("MMM dd, HH:mm")</small></td>
+                                <td><small>@(cmd.DeliveredAt?.ToString("MMM dd, HH:mm") ?? "-")</small></td>
+                                <td class="pe-4"><small class="text-muted">@(cmd.DeviceResponse ?? "-")</small></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Trigger notifications based on operation results
+        document.addEventListener('DOMContentLoaded', function() {
+            @if (TempData["TokenResult"] != null)
+            {
+                <text>
+                PayGoHub.notifySuccess('Token Generated', 'Token successfully generated for device @Model.Device.SerialNumber');
+                </text>
+            }
+            @if (TempData["TokenError"] != null)
+            {
+                <text>
+                PayGoHub.notifyError('Token Generation Failed', '@TempData["TokenError"]');
+                </text>
+            }
+            @if (TempData["CommandResult"] != null)
+            {
+                var cmdName = TempData["CommandName"]?.ToString() ?? "Command";
+                var cmdStatus = TempData["CommandResult"]?.ToString() ?? "sent";
+                <text>
+                PayGoHub.notify('M2M Command Sent', '@cmdName command queued for device @Model.Device.SerialNumber', '@(cmdStatus == "pending" ? "warning" : "success")');
+                </text>
+            }
+        });
+
+        // Dynamic form behavior based on selected commands
+        document.getElementById('tokenCommand')?.addEventListener('change', function() {
+            const helpText = document.getElementById('payloadHelp');
+            const payload = document.getElementById('tokenPayload');
+            switch(this.value) {
+                case 'unlock_relative':
+                    helpText.textContent = 'Enter number of days for relative unlock';
+                    payload.placeholder = 'e.g., 7 for 7 days';
+                    break;
+                case 'unlock_absolute':
+                    helpText.textContent = 'Enter target date (YYYY-MM-DD)';
+                    payload.placeholder = 'e.g., 2026-01-31';
+                    break;
+                case 'set_time':
+                    helpText.textContent = 'Enter timestamp or leave empty for now';
+                    payload.placeholder = 'Unix timestamp or empty';
+                    break;
+                case 'disable_payg':
+                    helpText.textContent = 'This will permanently disable PAYG';
+                    payload.placeholder = 'Confirmation code';
+                    break;
+                case 'counter_sync':
+                    helpText.textContent = 'Enter new counter value';
+                    payload.placeholder = 'Counter value';
+                    break;
+            }
+        });
+
+        document.getElementById('m2mCommand')?.addEventListener('change', function() {
+            const unlockGroup = document.getElementById('unlockCodeGroup');
+            unlockGroup.style.display = this.value === 'unlock_token' ? 'block' : 'none';
+        });
+
+        // Initial state
+        document.getElementById('unlockCodeGroup').style.display =
+            document.getElementById('m2mCommand')?.value === 'unlock_token' ? 'block' : 'none';
+    </script>
+}

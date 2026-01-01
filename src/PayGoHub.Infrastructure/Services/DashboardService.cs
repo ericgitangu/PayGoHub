@@ -156,44 +156,76 @@ public class DashboardService : IDashboardService
             });
         }
 
-        // Get Recent Activity
+        // Get Recent Activity - prioritize ActivityLog entries (M-Services operations)
         var recentActivity = new List<ActivityDto>();
 
-        var recentPaymentActivities = await _context.Payments
-            .Include(p => p.Customer)
-            .Where(p => p.Status == PaymentStatus.Completed)
-            .OrderByDescending(p => p.PaidAt)
-            .Take(3)
-            .ToListAsync();
-
-        foreach (var p in recentPaymentActivities)
+        // Get activities from ActivityLog table (includes M-Services operations)
+        // Use try-catch to handle case where table doesn't exist yet (migration not applied)
+        try
         {
-            recentActivity.Add(new ActivityDto
-            {
-                Title = "Payment Received",
-                Description = $"KES {p.Amount:N0} from {p.Customer.FirstName} {p.Customer.LastName}",
-                TimeAgo = GetTimeAgo(p.PaidAt ?? p.CreatedAt),
-                IconClass = "bi-cash",
-                ColorClass = "success"
-            });
+            var loggedActivities = await _context.ActivityLogs
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(5)
+                .Select(a => new ActivityDto
+                {
+                    Title = a.Title,
+                    Description = a.Description,
+                    TimeAgo = GetTimeAgo(a.CreatedAt),
+                    IconClass = a.IconClass,
+                    ColorClass = a.ColorClass
+                })
+                .ToListAsync();
+
+            recentActivity.AddRange(loggedActivities);
+        }
+        catch (Exception)
+        {
+            // ActivityLogs table may not exist yet - continue with other activities
         }
 
-        var recentInstallationActivities = await _context.Installations
-            .Include(i => i.Customer)
-            .OrderByDescending(i => i.CreatedAt)
-            .Take(2)
-            .ToListAsync();
-
-        foreach (var i in recentInstallationActivities)
+        // Also include recent payments if we need more activities
+        if (recentActivity.Count < 5)
         {
-            recentActivity.Add(new ActivityDto
+            var recentPaymentActivities = await _context.Payments
+                .Include(p => p.Customer)
+                .Where(p => p.Status == PaymentStatus.Completed)
+                .OrderByDescending(p => p.PaidAt)
+                .Take(5 - recentActivity.Count)
+                .ToListAsync();
+
+            foreach (var p in recentPaymentActivities)
             {
-                Title = i.Status == InstallationStatus.Completed ? "Installation Completed" : "Installation Scheduled",
-                Description = $"{i.SystemType} for {i.Customer.FirstName} {i.Customer.LastName}",
-                TimeAgo = GetTimeAgo(i.CreatedAt),
-                IconClass = "bi-tools",
-                ColorClass = i.Status == InstallationStatus.Completed ? "primary" : "info"
-            });
+                recentActivity.Add(new ActivityDto
+                {
+                    Title = "Payment Received",
+                    Description = $"KES {p.Amount:N0} from {p.Customer.FirstName} {p.Customer.LastName}",
+                    TimeAgo = GetTimeAgo(p.PaidAt ?? p.CreatedAt),
+                    IconClass = "bi-cash",
+                    ColorClass = "success"
+                });
+            }
+        }
+
+        // Include recent installations if we still need more
+        if (recentActivity.Count < 5)
+        {
+            var recentInstallationActivities = await _context.Installations
+                .Include(i => i.Customer)
+                .OrderByDescending(i => i.CreatedAt)
+                .Take(5 - recentActivity.Count)
+                .ToListAsync();
+
+            foreach (var i in recentInstallationActivities)
+            {
+                recentActivity.Add(new ActivityDto
+                {
+                    Title = i.Status == InstallationStatus.Completed ? "Installation Completed" : "Installation Scheduled",
+                    Description = $"{i.SystemType} for {i.Customer.FirstName} {i.Customer.LastName}",
+                    TimeAgo = GetTimeAgo(i.CreatedAt),
+                    IconClass = "bi-tools",
+                    ColorClass = i.Status == InstallationStatus.Completed ? "primary" : "info"
+                });
+            }
         }
 
         return new DashboardViewModel

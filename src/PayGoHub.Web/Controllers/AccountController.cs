@@ -1,16 +1,46 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace PayGoHub.Web.Controllers;
 
+[AllowAnonymous]
 public class AccountController : Controller
 {
+    /// <summary>
+    /// Landing page with app context and Google OAuth signin
+    /// This is the default root page for unauthenticated users
+    /// </summary>
     [HttpGet]
-    public IActionResult Login(string returnUrl = "/")
+    [Route("/")]
+    [Route("/Account/Landing")]
+    public IActionResult Landing(string? returnUrl = null)
     {
+        // If already authenticated, redirect to dashboard
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return Redirect("/dashboard");
+        }
+
+        ViewData["ReturnUrl"] = returnUrl ?? "/dashboard";
+        return View();
+    }
+
+    /// <summary>
+    /// Initiates Google OAuth signin
+    /// </summary>
+    [HttpGet]
+    public IActionResult Login(string returnUrl = "/dashboard")
+    {
+        // If already authenticated, redirect to dashboard
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return Redirect("/dashboard");
+        }
+
         var properties = new AuthenticationProperties
         {
             RedirectUri = Url.Action("GoogleCallback", new { returnUrl })
@@ -19,7 +49,7 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> GoogleCallback(string returnUrl = "/")
+    public async Task<IActionResult> GoogleCallback(string returnUrl = "/dashboard")
     {
         var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -28,14 +58,14 @@ public class AccountController : Controller
             return RedirectToAction("Login");
         }
 
-        return LocalRedirect(returnUrl ?? "/");
+        return Redirect(returnUrl ?? "/dashboard");
     }
 
     [HttpPost]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction("Index", "Home");
+        return Redirect("/");
     }
 
     [HttpGet]

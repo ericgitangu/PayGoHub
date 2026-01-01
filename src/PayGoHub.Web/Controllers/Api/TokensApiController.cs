@@ -8,7 +8,7 @@ namespace PayGoHub.Web.Controllers.Api;
 /// Token generation API endpoints (Moto API)
 /// </summary>
 [ApiController]
-[Route("api/tokens")]
+[Route("api/v1/tokens")]
 [Produces("application/json")]
 public class TokensApiController : ControllerBase
 {
@@ -28,9 +28,9 @@ public class TokensApiController : ControllerBase
     /// Generates a PAYG token using the provided device secret without storing state.
     /// Requires device secret to be provided in the request.
     ///
-    /// Sample request:
+    /// Sample request (matches Moto Rails API):
     ///
-    ///     POST /api/tokens/stateless/generate
+    ///     POST /api/v1/tokens/stateless/generate
     ///     {
     ///         "device": "SCBLNX/A/BT/240300126005",
     ///         "command": "unlock_relative",
@@ -70,7 +70,7 @@ public class TokensApiController : ControllerBase
     ///
     /// Sample request:
     ///
-    ///     POST /api/tokens/generate
+    ///     POST /api/v1/tokens/generate
     ///     {
     ///         "device": "SCBLNX/A/BT/240300126005",
     ///         "command": "unlock_relative",

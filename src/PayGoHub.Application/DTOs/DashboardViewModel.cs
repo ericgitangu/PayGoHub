@@ -37,19 +37,6 @@ public class RegionalSalesDto
     public string ColorClass { get; set; } = "primary";
 }
 
-public class PaymentDto
-{
-    public Guid Id { get; set; }
-    public string CustomerName { get; set; } = string.Empty;
-    public string CustomerInitials { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public string Method { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string StatusClass { get; set; } = string.Empty;
-    public DateTime? PaidAt { get; set; }
-    public string TimeAgo { get; set; } = string.Empty;
-}
-
 public class InstallationDto
 {
     public Guid Id { get; set; }

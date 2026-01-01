@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PayGoHub.Application.Interfaces;
+using PayGoHub.Web.ViewModels;
 
 namespace PayGoHub.Web.Controllers;
 
+[Authorize]
 public class SearchController : Controller
 {
     private readonly ICustomerService _customerService;
@@ -132,14 +135,4 @@ public class SearchController : Controller
 
         return Json(new { results, query = q });
     }
-}
-
-public class SearchResultsViewModel
-{
-    public string Query { get; set; } = "";
-    public List<PayGoHub.Application.DTOs.CustomerDto> Customers { get; set; } = new();
-    public List<PayGoHub.Application.DTOs.PaymentDto> Payments { get; set; } = new();
-    public List<PayGoHub.Application.DTOs.DeviceDto> Devices { get; set; } = new();
-
-    public int TotalResults => Customers.Count + Payments.Count + Devices.Count;
 }

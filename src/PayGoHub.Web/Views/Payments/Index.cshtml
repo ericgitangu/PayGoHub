@@ -85,20 +85,27 @@
                     {
                         @foreach (var payment in Model.Items)
                         {
-                            <tr>
+                            <tr class="cursor-pointer" onclick="window.location='@Url.Action("Details", new { id = payment.Id })'">
                                 <td class="ps-4">
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-sm bg-primary-subtle text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                             @payment.CustomerInitials
                                         </div>
-                                        <p class="mb-0 fw-medium">@payment.CustomerName</p>
+                                        <a asp-action="Details" asp-route-id="@payment.Id" class="text-decoration-none">
+                                            <p class="mb-0 fw-medium">@payment.CustomerName</p>
+                                        </a>
                                     </div>
                                 </td>
                                 <td><code>@payment.Reference</code></td>
-                                <td class="fw-semibold text-success">KES @payment.Amount.ToString("N0")</td>
+                                <td class="fw-semibold text-success">@payment.Currency @payment.Amount.ToString("N0")</td>
                                 <td><span class="badge bg-@(payment.Method == "Mpesa" ? "success" : "primary")-subtle text-@(payment.Method == "Mpesa" ? "success" : "primary")">@payment.Method</span></td>
                                 <td><span class="badge bg-@payment.StatusClass">@payment.Status</span></td>
-                                <td class="pe-4 text-muted">@payment.TimeAgo</td>
+                                <td class="pe-4">
+                                    <span class="text-muted me-2">@payment.TimeAgo</span>
+                                    <a asp-action="Details" asp-route-id="@payment.Id" class="btn btn-sm btn-outline-primary" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
                             </tr>
                         }
                     }

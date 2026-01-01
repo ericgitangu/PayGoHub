@@ -92,6 +92,7 @@ public class M2MCommandService : IM2MCommandService
 
         return new CommandResponseDto
         {
+            CommandId = command.Id.ToString(),
             Identifier = command.DeviceIdentifier,
             Command = formattedCommand,
             Status = command.Status.ToString().ToLowerInvariant(),
@@ -99,6 +100,26 @@ public class M2MCommandService : IM2MCommandService
             DeliveredAt = command.ExecutedAt,
             DeviceResponse = command.DeviceResponse
         };
+    }
+
+    public async Task<IEnumerable<CommandResponseDto>> GetRecentCommandsAsync(string deviceIdentifier, int count = 10, CancellationToken cancellationToken = default)
+    {
+        var commands = await _dbContext.DeviceCommands
+            .Where(c => c.DeviceIdentifier == deviceIdentifier)
+            .OrderByDescending(c => c.CreatedAt)
+            .Take(count)
+            .ToListAsync(cancellationToken);
+
+        return commands.Select(c => new CommandResponseDto
+        {
+            CommandId = c.Id.ToString(),
+            Identifier = c.DeviceIdentifier,
+            Command = FormatCommand(c.CommandName, c.CommandDetails),
+            Status = c.Status.ToString().ToLowerInvariant(),
+            CreatedAt = c.CreatedAt,
+            DeliveredAt = c.ExecutedAt,
+            DeviceResponse = c.DeviceResponse
+        });
     }
 
     public async Task ProcessCallbackAsync(CallbackDto callback, CancellationToken cancellationToken = default)

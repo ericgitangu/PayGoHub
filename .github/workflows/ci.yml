@@ -236,12 +236,13 @@ jobs:
           docker rm paygohub-test || true
 
   # ============================================================================
-  # Integration Tests (with Docker Compose)
+  # Integration Tests (with Docker Compose) - Manual trigger or [integration] in commit
   # ============================================================================
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: build
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[integration]')
 
     steps:
       - name: Checkout

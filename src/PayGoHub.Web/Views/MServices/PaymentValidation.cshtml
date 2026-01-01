@@ -1,0 +1,242 @@
+@{
+    ViewData["Title"] = "Payment Validation - MOMOEP";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">M-Services</a></li>
+            <li class="breadcrumb-item active">Payment Validation</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-credit-card-fill me-2"></i>MOMOEP Payment Validation</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="paymentTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#validateTab">Validate</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#confirmTab">Confirm</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Validate Tab -->
+                        <div class="tab-pane fade show active" id="validateTab">
+                            <form id="validateForm">
+                                @Html.AntiForgeryToken()
+
+                                <div class="mb-3">
+                                    <label class="form-label">Account Reference</label>
+                                    <input type="text" class="form-control" id="reference" name="reference"
+                                           placeholder="e.g., 254543" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Provider</label>
+                                    <select class="form-select" id="providerKey" name="providerKey" required>
+                                        <option value="ke_safaricom_mpesa">Kenya - Safaricom M-Pesa</option>
+                                        <option value="ug_mtn_mobilemoney">Uganda - MTN Mobile Money</option>
+                                        <option value="tz_vodacom_mpesa">Tanzania - Vodacom M-Pesa</option>
+                                        <option value="rw_mtn_mobilemoney">Rwanda - MTN Mobile Money</option>
+                                    </select>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Amount</label>
+                                        <input type="number" class="form-control" id="amount" name="amountSubunit"
+                                               placeholder="20000" min="0">
+                                        <div class="form-text">Amount in subunits (cents)</div>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Currency</label>
+                                        <select class="form-select" id="currency" name="currency">
+                                            <option value="KES">KES</option>
+                                            <option value="UGX">UGX</option>
+                                            <option value="TZS">TZS</option>
+                                            <option value="RWF">RWF</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Business Account</label>
+                                    <input type="text" class="form-control" id="businessAccount" name="businessAccount"
+                                           placeholder="e.g., 544544" required>
+                                </div>
+
+                                <button type="submit" class="btn btn-warning w-100" id="validateBtn">
+                                    <i class="bi bi-check-circle me-1"></i> Validate Payment
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Confirm Tab -->
+                        <div class="tab-pane fade" id="confirmTab">
+                            <form id="confirmForm">
+                                @Html.AntiForgeryToken()
+
+                                <div class="mb-3">
+                                    <label class="form-label">Account Reference</label>
+                                    <input type="text" class="form-control" name="reference" placeholder="e.g., 254543" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Provider Transaction ID</label>
+                                    <input type="text" class="form-control" name="providerTx" placeholder="e.g., WG53SJ8284" required>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Provider</label>
+                                        <select class="form-select" name="providerKey" required>
+                                            <option value="ke_safaricom_mpesa">Kenya - M-Pesa</option>
+                                            <option value="ug_mtn_mobilemoney">Uganda - MTN</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Amount (subunits)</label>
+                                        <input type="number" class="form-control" name="amountSubunit" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Currency</label>
+                                        <select class="form-select" name="currency">
+                                            <option value="KES">KES</option>
+                                            <option value="UGX">UGX</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mb-3">
+                                        <label class="form-label">Business Account</label>
+                                        <input type="text" class="form-control" name="businessAccount" required>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Sender Phone (Optional)</label>
+                                    <input type="text" class="form-control" name="senderPhone" placeholder="254727123123">
+                                </div>
+
+                                <button type="submit" class="btn btn-success w-100" id="confirmBtn">
+                                    <i class="bi bi-check2-circle me-1"></i> Confirm Payment
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Result</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContainer" class="d-none">
+                        <div id="successResult" class="d-none">
+                            <div class="alert alert-success">
+                                <h6 class="alert-heading"><i class="bi bi-check-circle me-1"></i> Success</h6>
+                            </div>
+                            <div id="customerInfo" class="bg-light p-3 rounded mb-3">
+                                <small class="text-muted d-block">Customer Name</small>
+                                <h5 class="mb-0" id="customerName"></h5>
+                            </div>
+                        </div>
+                        <div id="errorResult" class="d-none">
+                            <div class="alert alert-danger">
+                                <h6 class="alert-heading"><i class="bi bi-x-circle me-1"></i> Validation Failed</h6>
+                                <p class="mb-1"><strong>Error:</strong> <span id="errorCode"></span></p>
+                                <p class="mb-0" id="errorMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="placeholder" class="text-center text-muted py-5">
+                        <i class="bi bi-credit-card display-4"></i>
+                        <p class="mt-2">Validate or confirm a payment</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Reference -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-code-slash me-2"></i>API Reference</h6>
+                </div>
+                <div class="card-body">
+                    <code class="d-block mb-2">POST /api/v1/{provider_key}/validate</code>
+                    <pre class="bg-light p-3 rounded small"><code>{
+  "account_reference": "254543",
+  "business_reference": "544544",
+  "amount": "300"
+}</code></pre>
+                    <code class="d-block mb-2">POST /api/v1/{provider_key}/confirm</code>
+                    <pre class="bg-light p-3 rounded small mb-0"><code>{
+  "reference": "254543",
+  "provider_tx": "WG53SJ8284",
+  "amount_subunit": 30000
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('validateForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await submitForm(this, '@Url.Action("ValidatePayment")', 'validateBtn');
+});
+
+document.getElementById('confirmForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await submitForm(this, '@Url.Action("ConfirmPayment")', 'confirmBtn');
+});
+
+async function submitForm(form, url, btnId) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+
+    const formData = new FormData(form);
+    const data = new URLSearchParams(formData);
+
+    try {
+        const response = await fetch(url, { method: 'POST', body: data });
+        const result = await response.json();
+
+        document.getElementById('placeholder').classList.add('d-none');
+        document.getElementById('resultContainer').classList.remove('d-none');
+
+        if (result.status === 'ok') {
+            document.getElementById('successResult').classList.remove('d-none');
+            document.getElementById('errorResult').classList.add('d-none');
+            document.getElementById('customerName').textContent = result.customerName || 'N/A';
+        } else {
+            document.getElementById('successResult').classList.add('d-none');
+            document.getElementById('errorResult').classList.remove('d-none');
+            document.getElementById('errorCode').textContent = result.error || 'unknown';
+            document.getElementById('errorMessage').textContent = result.errorMessage || '';
+        }
+    } catch (err) {
+        document.getElementById('errorResult').classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = err.message;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = btnId === 'validateBtn'
+            ? '<i class="bi bi-check-circle me-1"></i> Validate Payment'
+            : '<i class="bi bi-check2-circle me-1"></i> Confirm Payment';
+    }
+}
+</script>
+}

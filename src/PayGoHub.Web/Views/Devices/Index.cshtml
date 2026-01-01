@@ -84,9 +84,11 @@
                     {
                         @foreach (var device in Model.Items)
                         {
-                            <tr>
+                            <tr class="cursor-pointer" onclick="window.location='@Url.Action("Details", new { id = device.Id })'">
                                 <td class="ps-4">
-                                    <p class="mb-0 fw-medium"><code>@device.SerialNumber</code></p>
+                                    <a asp-action="Details" asp-route-id="@device.Id" class="text-decoration-none">
+                                        <code class="fw-medium">@device.SerialNumber</code>
+                                    </a>
                                 </td>
                                 <td>@device.Model</td>
                                 <td>@(device.CustomerName ?? "-")</td>
@@ -99,7 +101,12 @@
                                         <small>@device.BatteryHealth%</small>
                                     </div>
                                 </td>
-                                <td class="pe-4"><span class="badge bg-@device.StatusClass">@device.Status</span></td>
+                                <td class="pe-4">
+                                    <span class="badge bg-@device.StatusClass">@device.Status</span>
+                                    <a asp-action="Details" asp-route-id="@device.Id" class="btn btn-sm btn-outline-primary ms-2" title="View Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
                             </tr>
                         }
                     }

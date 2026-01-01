@@ -7,6 +7,11 @@ namespace PayGoHub.Application.DTOs.M2M;
 /// </summary>
 public class CommandResponseDto
 {
+    /// <summary>Command ID</summary>
+    [JsonPropertyName("command_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CommandId { get; set; }
+
     /// <summary>Device identifier</summary>
     [JsonPropertyName("identifier")]
     public string Identifier { get; set; } = string.Empty;

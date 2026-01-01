@@ -23,13 +23,20 @@ public class PaymentService : IPaymentService
             .Select(p => new PaymentDto
             {
                 Id = p.Id,
+                CustomerId = p.CustomerId,
                 CustomerName = p.Customer.FirstName + " " + p.Customer.LastName,
                 CustomerInitials = (p.Customer.FirstName.Substring(0, 1) + p.Customer.LastName.Substring(0, 1)).ToUpper(),
                 Amount = p.Amount,
+                Currency = p.Currency,
                 Method = p.Method.ToString(),
                 Status = p.Status.ToString(),
                 StatusClass = GetStatusClass(p.Status),
-                PaidAt = p.PaidAt
+                Reference = p.TransactionReference,
+                MpesaReceiptNumber = p.MpesaReceiptNumber,
+                ProviderKey = p.ProviderKey,
+                PaymentDate = p.PaidAt,
+                PaidAt = p.PaidAt,
+                CreatedAt = p.CreatedAt
             })
             .ToListAsync();
     }
@@ -46,13 +53,20 @@ public class PaymentService : IPaymentService
         return new PaymentDto
         {
             Id = payment.Id,
+            CustomerId = payment.CustomerId,
             CustomerName = payment.Customer.FullName,
             CustomerInitials = (payment.Customer.FirstName.Substring(0, 1) + payment.Customer.LastName.Substring(0, 1)).ToUpper(),
             Amount = payment.Amount,
+            Currency = payment.Currency,
             Method = payment.Method.ToString(),
             Status = payment.Status.ToString(),
             StatusClass = GetStatusClass(payment.Status),
+            Reference = payment.TransactionReference,
+            MpesaReceiptNumber = payment.MpesaReceiptNumber,
+            ProviderKey = payment.ProviderKey,
+            PaymentDate = payment.PaidAt,
             PaidAt = payment.PaidAt,
+            CreatedAt = payment.CreatedAt,
             TimeAgo = GetTimeAgo(payment.PaidAt ?? payment.CreatedAt)
         };
     }
@@ -66,13 +80,20 @@ public class PaymentService : IPaymentService
             .Select(p => new PaymentDto
             {
                 Id = p.Id,
+                CustomerId = p.CustomerId,
                 CustomerName = p.Customer.FirstName + " " + p.Customer.LastName,
                 CustomerInitials = (p.Customer.FirstName.Substring(0, 1) + p.Customer.LastName.Substring(0, 1)).ToUpper(),
                 Amount = p.Amount,
+                Currency = p.Currency,
                 Method = p.Method.ToString(),
                 Status = p.Status.ToString(),
                 StatusClass = GetStatusClass(p.Status),
-                PaidAt = p.PaidAt
+                Reference = p.TransactionReference,
+                MpesaReceiptNumber = p.MpesaReceiptNumber,
+                ProviderKey = p.ProviderKey,
+                PaymentDate = p.PaidAt,
+                PaidAt = p.PaidAt,
+                CreatedAt = p.CreatedAt
             })
             .ToListAsync();
 

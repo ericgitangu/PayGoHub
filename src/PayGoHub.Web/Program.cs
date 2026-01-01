@@ -55,6 +55,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.LoginPath = "/Account/Landing";
+    options.AccessDeniedPath = "/Account/Landing";
 })
 .AddGoogle(options =>
 {
@@ -87,6 +89,10 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IMomoPaymentService, MomoPaymentService>();
 builder.Services.AddScoped<IM2MCommandService, M2MCommandService>();
 builder.Services.AddScoped<ITokenGenerationService, TokenGenerationService>();
+builder.Services.AddScoped<IMegaSmsService, MegaSmsService>();
+
+// Add Activity logging
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
 // Add HTTP client for M2M callbacks
 builder.Services.AddHttpClient("M2MCallback", client =>
@@ -145,16 +151,34 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var context = services.GetRequiredService<PayGoHubDbContext>();
+
+    // Try to apply migrations, but continue even if they fail (for already-applied schemas)
     try
     {
-        var context = services.GetRequiredService<PayGoHubDbContext>();
         await context.Database.MigrateAsync();
-        await DbSeeder.SeedAsync(context);
+        logger.LogInformation("Database migrations applied successfully.");
+    }
+    catch (Npgsql.PostgresException ex) when (ex.SqlState == "42701" || ex.SqlState == "42P07")
+    {
+        // 42701 = column already exists, 42P07 = table already exists
+        logger.LogWarning("Some migrations were skipped (schema already exists): {Message}", ex.Message);
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        logger.LogError(ex, "An error occurred while migrating the database.");
+    }
+
+    // Always try to seed data
+    try
+    {
+        await DbSeeder.SeedAsync(context);
+        logger.LogInformation("Database seeding completed.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }
 
@@ -199,9 +223,16 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 // Map API controllers
 app.MapControllers();
 
+// Dashboard route
+app.MapControllerRoute(
+    name: "dashboard",
+    pattern: "dashboard",
+    defaults: new { controller = "Home", action = "Index" });
+
+// Standard MVC routes for all controllers
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
+    pattern: "{controller}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 app.Run();

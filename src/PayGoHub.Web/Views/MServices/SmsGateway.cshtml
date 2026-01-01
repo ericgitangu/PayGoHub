@@ -1,0 +1,179 @@
+@{
+    ViewData["Title"] = "SMS Gateway - MEGA";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">M-Services</a></li>
+            <li class="breadcrumb-item active">SMS Gateway</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots-fill me-2"></i>MEGA SMS Gateway</h5>
+                </div>
+                <div class="card-body">
+                    <form id="smsForm">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label">Recipient Phone Number</label>
+                            <input type="text" class="form-control" id="recipient" name="recipient"
+                                   placeholder="e.g., 254700123456" required>
+                            <div class="form-text">Phone number without + prefix</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Message Text</label>
+                            <textarea class="form-control" id="text" name="text" rows="4"
+                                      placeholder="Your payment of KES 1,000 has been received. Token: 1234-5678-9012-3456" required></textarea>
+                            <div class="form-text"><span id="charCount">0</span>/160 characters</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sender ID</label>
+                            <input type="text" class="form-control" id="sender" name="sender"
+                                   value="SOLARIUM" maxlength="11">
+                            <div class="form-text">Alphanumeric sender ID (max 11 chars)</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Category (Optional)</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="">-- Select Category --</option>
+                                <option value="token-delivery">token-delivery</option>
+                                <option value="payment-confirmation">payment-confirmation</option>
+                                <option value="verification-code">verification-code</option>
+                                <option value="notification">notification</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100" id="sendBtn">
+                            <i class="bi bi-send me-1"></i> Send SMS
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-terminal me-2"></i>Result</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultContainer" class="d-none">
+                        <div id="successResult" class="d-none">
+                            <div class="alert alert-success">
+                                <h6 class="alert-heading"><i class="bi bi-check-circle me-1"></i> SMS Queued</h6>
+                                <p class="mb-0">Message has been queued for delivery</p>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="bg-light p-3 rounded text-center">
+                                        <small class="text-muted d-block">Mega SMS ID</small>
+                                        <h5 class="mb-0 text-primary" id="megaSmsId"></h5>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bg-light p-3 rounded text-center">
+                                        <small class="text-muted d-block">Status</small>
+                                        <h5 class="mb-0 text-success" id="smsStatus"></h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="duplicateResult" class="d-none">
+                            <div class="alert alert-warning">
+                                <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-1"></i> Duplicate SMS</h6>
+                                <p class="mb-0" id="duplicateMessage"></p>
+                            </div>
+                        </div>
+                        <div id="errorResult" class="d-none">
+                            <div class="alert alert-danger">
+                                <h6 class="alert-heading"><i class="bi bi-x-circle me-1"></i> Error</h6>
+                                <p class="mb-0" id="errorMessage"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="placeholder" class="text-center text-muted py-5">
+                        <i class="bi bi-chat-dots display-4"></i>
+                        <p class="mt-2">Fill the form and click Send SMS</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Reference -->
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-code-slash me-2"></i>API Reference</h6>
+                </div>
+                <div class="card-body">
+                    <code class="d-block mb-2">POST /send_short_message</code>
+                    <pre class="bg-light p-3 rounded small mb-0"><code>{
+  "text": "Your token is: 1234-5678-9012-3456",
+  "recipient": "254700123456",
+  "sender": "SOLARIUM",
+  "instance_sms_id": 12345,
+  "category": "token-delivery"
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('text').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length;
+});
+
+document.getElementById('smsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+
+    const formData = new FormData(this);
+    const data = new URLSearchParams(formData);
+
+    try {
+        const response = await fetch('@Url.Action("SendSms")', {
+            method: 'POST',
+            body: data
+        });
+        const result = await response.json();
+
+        document.getElementById('placeholder').classList.add('d-none');
+        document.getElementById('resultContainer').classList.remove('d-none');
+        document.getElementById('successResult').classList.add('d-none');
+        document.getElementById('duplicateResult').classList.add('d-none');
+        document.getElementById('errorResult').classList.add('d-none');
+
+        if (result.status === 200) {
+            document.getElementById('successResult').classList.remove('d-none');
+            document.getElementById('megaSmsId').textContent = result.megaSmsId || 'N/A';
+            document.getElementById('smsStatus').textContent = 'Queued';
+        } else if (result.status === 303) {
+            document.getElementById('duplicateResult').classList.remove('d-none');
+            document.getElementById('duplicateMessage').textContent = result.description;
+        } else {
+            document.getElementById('errorResult').classList.remove('d-none');
+            document.getElementById('errorMessage').textContent = result.description;
+        }
+    } catch (err) {
+        document.getElementById('errorResult').classList.remove('d-none');
+        document.getElementById('errorMessage').textContent = err.message;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send me-1"></i> Send SMS';
+    }
+});
+</script>
+}
