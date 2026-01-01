@@ -390,14 +390,27 @@ body {
 }
 
 [data-theme="dark"] .form-control,
-[data-theme="dark"] .input-group-text {
-    background-color: var(--input-bg);
-    border-color: var(--border-color);
-    color: var(--text-primary);
+[data-theme="dark"] .input-group-text,
+[data-theme="dark"] .form-control.bg-light,
+[data-theme="dark"] .input-group-text.bg-light {
+    background-color: var(--input-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .form-control::placeholder {
     color: var(--text-muted);
+}
+
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-select.bg-light {
+    background-color: var(--input-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: var(--input-bg) !important;
 }
 
 [data-theme="dark"] .dropdown-menu {
