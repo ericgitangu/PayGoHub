@@ -131,8 +131,8 @@ public static class DbSeeder
             {
                 Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 Name = "M2M Service",
-                // API Key: m2m-service-api-key-2026 (hash: echo -n 'm2m-service-api-key-2026' | sha256sum)
-                ApiKeyHash = "a3c91c80a7e9a47b3c1d4f3b7e8c2a1d9f6b5e4c3a2b1d0e9f8c7a6b5d4e3f2a1",
+                // API Key: m2m-service-api-key-2026
+                ApiKeyHash = "d9aed97a566a488239ad006b80fb8a8ae4d5f2521badf5370cf2bf36fde029ad",
                 IsActive = true,
                 AllowedScopes = new[] { "m2m:command", "m2m:callback" },
                 AllowedProviders = new string[] { },
@@ -143,8 +143,8 @@ public static class DbSeeder
             {
                 Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
                 Name = "Moto Token Service",
-                // API Key: moto-token-api-key-2026 (hash computed)
-                ApiKeyHash = "b4d82c91b8f0b58c4d2e5f4c8f9d3b2e0a7c6d5b4a3c2d1e0f9e8d7c6b5a4f3e2",
+                // API Key: moto-token-api-key-2026
+                ApiKeyHash = "7e14665d074c1564c6dfe741291916b3c06f50e463146c56dc5f46b5bb6d8154",
                 IsActive = true,
                 AllowedScopes = new[] { "tokens:generate", "tokens:stateless" },
                 AllowedProviders = new string[] { },
