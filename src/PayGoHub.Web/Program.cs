@@ -46,10 +46,14 @@ var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRE
     ?? builder.Configuration["Authentication:Google:ClientSecret"]
     ?? "";
 
-builder.Services.AddAuthentication(options =>
+var hasGoogleOAuth = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
+
+var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = hasGoogleOAuth
+        ? GoogleDefaults.AuthenticationScheme
+        : CookieAuthenticationDefaults.AuthenticationScheme;
 })
 .AddCookie(options =>
 {
@@ -57,25 +61,28 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.LoginPath = "/Account/Landing";
     options.AccessDeniedPath = "/Account/Landing";
-})
-.AddGoogle(options =>
-{
-    options.ClientId = googleClientId;
-    options.ClientSecret = googleClientSecret;
-    options.CallbackPath = "/signin-google";
-    options.SaveTokens = true;
-    options.Scope.Add("profile");
-    options.Scope.Add("email");
-    options.Events.OnCreatingTicket = async context =>
-    {
-        // Add profile picture to claims
-        var picture = context.User.GetProperty("picture").GetString();
-        if (!string.IsNullOrEmpty(picture))
-        {
-            context.Identity?.AddClaim(new System.Security.Claims.Claim("picture", picture));
-        }
-    };
 });
+
+if (hasGoogleOAuth)
+{
+    authBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.CallbackPath = "/signin-google";
+        options.SaveTokens = true;
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
+        options.Events.OnCreatingTicket = async context =>
+        {
+            var picture = context.User.GetProperty("picture").GetString();
+            if (!string.IsNullOrEmpty(picture))
+            {
+                context.Identity?.AddClaim(new System.Security.Claims.Claim("picture", picture));
+            }
+        };
+    });
+}
 
 // Add existing services
 builder.Services.AddScoped<IDashboardService, DashboardService>();
