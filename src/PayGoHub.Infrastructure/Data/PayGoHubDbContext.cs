@@ -1,10 +1,11 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using PayGoHub.Domain.Entities;
 
 namespace PayGoHub.Infrastructure.Data;
 
-public class PayGoHubDbContext : DbContext
+public class PayGoHubDbContext : DbContext, IDataProtectionKeyContext
 {
     public PayGoHubDbContext(DbContextOptions<PayGoHubDbContext> options) : base(options)
     {
@@ -34,6 +35,9 @@ public class PayGoHubDbContext : DbContext
 
     // Activity tracking
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+
+    // Data Protection keys (persisted across Cloud Run restarts)
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
