@@ -1,249 +1,187 @@
 # PayGoHub
 
-ASP.NET Core 10.0 MVC application for solar home systems management and pay-as-you-go payments.
+ASP.NET Core 10.0 MVC · Clean Architecture · PostgreSQL · GCP Cloud Run (africa-south1)
+
+**Live:** [paygohub-904401126919.africa-south1.run.app](https://paygohub-904401126919.africa-south1.run.app)
 
 ![PayGoHub Dashboard](docs/images/dashboard-screenshot.png)
 
 ## Features
 
-- **Sales Dashboard** - Real-time KPIs for revenue, customers, loans, and installations
-- **Customer Management** - Full CRUD for customer lifecycle and qualification
-- **Payment Processing** - M-Pesa integration for mobile money payments
-- **Loan Management** - Track active loans and payment schedules
-- **Device Management** - Solar system installations and unlock codes
-- **Reporting** - Sales by region and revenue analytics
+- **Dashboard** — Real-time KPIs: revenue, customers, active loans, installations
+- **Customer Management** — Full CRUD with region/district organisation
+- **Payment Processing** — M-Pesa, MTN MoMo, Bank, Cash tracking
+- **Loan Management** — Full lifecycle from application to payoff
+- **Installations** — Technician scheduling and completion tracking
+- **Device Monitoring** — Solar home system status and health
+- **Activity Feed** — Audit log with entity-level event trail
+- **Google OAuth** — One-click sign-in; email/password fallback
 
 ## Tech Stack
 
-- .NET 10.0
-- ASP.NET Core MVC
-- Entity Framework Core 9.0 (Npgsql)
-- PostgreSQL 16 (Dockerized)
-- Bootstrap 5
-- Bootstrap Icons
-- Clean Architecture
+| Layer | Choice |
+|---|---|
+| Runtime | .NET 10.0 (preview) |
+| Framework | ASP.NET Core MVC |
+| ORM | EF Core 10.0 + Npgsql |
+| DB | PostgreSQL 16 (Cloud SQL) |
+| Auth | Google OAuth 2.0 + Cookie |
+| Data Protection | EF Core key-ring persistence |
+| Frontend | Razor + Bootstrap 5 + Chart.js |
+| Deploy | GCP Cloud Run (africa-south1) |
+| Image registry | Artifact Registry |
+| Secrets | GCP Secret Manager |
 
 ## Architecture
 
 ```
 PayGoHub/
 ├── src/
-│   ├── PayGoHub.Domain/           # Entities, Enums, Interfaces
-│   ├── PayGoHub.Application/      # Services interfaces, DTOs
-│   ├── PayGoHub.Infrastructure/   # EF Core, DbContext, Services
-│   └── PayGoHub.Web/              # MVC Controllers, Views
+│   ├── PayGoHub.Domain/           # Entities, Enums
+│   ├── PayGoHub.Application/      # Service interfaces, DTOs
+│   ├── PayGoHub.Infrastructure/   # EF Core, DbContext, entity configs, services
+│   └── PayGoHub.Web/              # MVC controllers, Razor views, middleware
 ├── tests/
-├── docker-compose.yml             # PostgreSQL + App containers
-├── Dockerfile                     # Multi-stage build
-├── PayGoHub.sln
-└── README.md
+│   ├── PayGoHub.Tests/            # xUnit unit + integration
+│   └── PayGoHub.E2E/              # Playwright E2E
+├── cloudbuild.yaml                # GCP Cloud Build
+├── Dockerfile                     # Multi-stage (.NET 10 SDK → runtime)
+└── docker-compose.yml             # Local: PostgreSQL + app
 ```
 
-## Getting Started
-
-### Prerequisites
-
-- .NET 10.0 SDK
-- Docker & Docker Compose
-
-### Quick Start with Docker
+## Local Development
 
 ```bash
-# Clone the repository
-git clone https://github.com/ericgitangu/PayGoHub.git
-cd PayGoHub
+# PostgreSQL + app
+docker compose up -d
 
-# Start PostgreSQL and the application
-docker-compose up -d
+# PostgreSQL only (run app via dotnet)
+docker compose up -d db
+cd src/PayGoHub.Web && dotnet run
+# → http://localhost:5068
 
-# Open http://localhost:5000
-```
-
-### Local Development
-
-```bash
-# Start PostgreSQL only
-docker-compose up -d db
-
-# Run the application
-cd src/PayGoHub.Web
-dotnet run
-
-# Open https://localhost:7239 or http://localhost:5068
-```
-
-### Database Migrations
-
-```bash
-# Create a new migration
-dotnet ef migrations add MigrationName \
+# Migrations
+dotnet ef migrations add <Name> \
   --project src/PayGoHub.Infrastructure \
-  --startup-project src/PayGoHub.Web \
-  --output-dir Data/Migrations
+  --startup-project src/PayGoHub.Web
 
-# Apply migrations
 dotnet ef database update \
   --project src/PayGoHub.Infrastructure \
   --startup-project src/PayGoHub.Web
 ```
 
-## Project Structure
+### Environment variables
 
-| Project | Purpose |
-|---------|---------|
-| **PayGoHub.Domain** | Entities (Customer, Payment, Loan, Installation, Device), Enums, Repository interfaces |
-| **PayGoHub.Application** | Service interfaces, DTOs, ViewModels |
-| **PayGoHub.Infrastructure** | EF Core DbContext, Entity configurations, Service implementations, Seed data |
-| **PayGoHub.Web** | MVC Controllers, Razor Views, Static assets |
+| Variable | Required | Notes |
+|---|---|---|
+| `ConnectionStrings__DefaultConnection` | yes | Postgres connection string |
+| `GOOGLE_CLIENT_ID` | no | OAuth disabled when absent |
+| `GOOGLE_CLIENT_SECRET` | no | OAuth disabled when absent |
+| `ASPNETCORE_ENVIRONMENT` | — | `Development` locally |
 
-## Dashboard Features
+Google OAuth is registered conditionally — the app starts without credentials (useful in CI or local dev without OAuth setup).
 
-| Section | Description |
-|---------|-------------|
-| **KPI Cards** | Revenue, Customers, Active Loans, Installations |
-| **Revenue Chart** | Monthly/Weekly/Daily revenue visualization |
-| **Sales by Region** | Geographic breakdown with progress indicators |
-| **Recent Payments** | Latest M-Pesa and bank transactions |
-| **Pending Installations** | Scheduled system installations |
-| **Quick Actions** | Add customer, View payments, Manage loans |
-| **Activity Feed** | Real-time activity timeline |
-
-## API Endpoints
-
-| Controller | Routes |
-|------------|--------|
-| **Home** | `GET /` - Dashboard |
-| **Customers** | `GET /Customers`, `GET /Customers/Create`, `POST /Customers/Create`, `GET /Customers/Edit/{id}`, `POST /Customers/Delete/{id}` |
-| **Payments** | `GET /Payments`, `GET /Payments/Details/{id}` |
-| **Loans** | `GET /Loans`, `GET /Loans/Details/{id}` |
-| **Installations** | `GET /Installations`, `GET /Installations/Details/{id}` |
-| **Devices** | `GET /Devices`, `GET /Devices/Details/{id}` |
-| **Health** | `GET /health` |
-
-## Docker Services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| **paygohub-web** | 5000 | ASP.NET Core MVC application |
-| **paygohub-db** | 5433 | PostgreSQL 16 database |
-| **paygohub-pgadmin** | 5050 | pgAdmin 4 (optional, use `--profile tools`) |
-
-## Docker Commands
+## Production Deployment (GCP Cloud Run)
 
 ```bash
-# Start full stack (recommended)
-docker-compose up -d
+# Build + push via Cloud Build
+gcloud builds submit \
+  --tag africa-south1-docker.pkg.dev/pawacloud-assessment/pawacloud/paygohub:latest \
+  --region=africa-south1 --project=pawacloud-assessment
 
-# Start with pgAdmin for database management
-docker-compose --profile tools up -d
+# Deploy
+gcloud run deploy paygohub \
+  --image=africa-south1-docker.pkg.dev/pawacloud-assessment/pawacloud/paygohub:latest \
+  --region=africa-south1 --project=pawacloud-assessment
 
-# View logs
-docker-compose logs -f web
-
-# Rebuild after code changes
-docker-compose up --build -d
-
-# Stop all services
-docker-compose down
-
-# Stop and remove volumes (fresh start)
-docker-compose down -v
+# Tail logs
+gcloud logging read \
+  'resource.type="cloud_run_revision" resource.labels.service_name="paygohub"' \
+  --project=pawacloud-assessment --limit=50 --format='value(timestamp,textPayload)'
 ```
 
-## Environment Variables
+Secrets are loaded from GCP Secret Manager at container start via `--update-secrets`. The Cloud SQL instance (`pawacloud-assessment:africa-south1:pawacloud-db`) is accessed via Unix socket using the `--add-cloudsql-instances` flag.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_PASSWORD` | paygohub123 | PostgreSQL password |
-| `ASPNETCORE_ENVIRONMENT` | Production | Runtime environment |
-| `ConnectionStrings__DefaultConnection` | (auto) | Database connection string |
+## CI/CD
 
-## Testing & CI/CD
+GitHub Actions (`.github/workflows/ci.yml`):
 
-### Running Tests
+| Stage | Notes |
+|---|---|
+| Build & Test | Unit tests with PostgreSQL service container |
+| Code Quality | `dotnet format` check |
+| Security Scan | NuGet vulnerability audit |
+| Docker Build | Validates multi-stage Dockerfile |
+| Integration Tests | docker compose services |
+| E2E Tests | Playwright; triggered by `[e2e]` in commit message |
 
-```bash
-# Run all tests
-dotnet test
+## Operational Notes
 
-# Run tests with coverage
-dotnet test --collect:"XPlat Code Coverage"
+### Migration idempotency
 
-# Run specific test category
-dotnet test --filter "Category=Unit"
+EF Core's `MigrateAsync()` applies all pending migrations in a single transaction per migration. A failure in any migration's `Up()` rolls back that migration and halts the chain — subsequent migrations never run.
+
+**Lesson:** Every corrective or out-of-band migration must be idempotent. Use `IF EXISTS` / `IF NOT EXISTS` guards in raw SQL migrations, never assume prior state.
+
+Key patterns used:
+
+```sql
+-- Rename only when source column exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'customers' AND column_name = 'AccountNumber'
+    ) THEN
+        ALTER TABLE customers RENAME COLUMN "AccountNumber" TO account_number;
+    END IF;
+END $$;
+
+-- Create table only when absent
+CREATE TABLE IF NOT EXISTS "DataProtectionKeys" (
+    "Id" SERIAL PRIMARY KEY,
+    "FriendlyName" TEXT,
+    "Xml" TEXT
+);
 ```
 
-### CI Pipeline
+### Npgsql 10 + explicit column names
 
-The project includes a comprehensive GitHub Actions CI pipeline (`.github/workflows/ci.yml`) with:
+Npgsql.EntityFrameworkCore.PostgreSQL 10.0 does **not** auto-apply snake_case unless you call `UseSnakeCaseNamingConvention()`. Column mappings that differ from the C# property name must be declared explicitly in entity configurations (`HasColumnName(...)`). If a raw SQL migration creates a column with a different casing than the EF configuration, every query against that entity will fail with `column does not exist`.
 
-| Stage | Description |
-|-------|-------------|
-| **Build & Test** | Restores, builds, and runs all unit tests with PostgreSQL service |
-| **Code Quality** | Checks code formatting with `dotnet format` |
-| **Security Scan** | Checks for vulnerable and outdated NuGet packages |
-| **Docker Build** | Builds and validates the Docker image |
-| **Integration Tests** | Runs tests against docker-compose services |
-| **E2E Tests** | Playwright-based browser tests (triggered with `[e2e]` in commit message) |
+Audit entity configurations in `PayGoHub.Infrastructure/Data/Configurations/` if you see this class of error.
 
-### QA Tools
+### Data Protection key persistence
 
-| Tool | Purpose |
-|------|---------|
-| **xUnit** | Unit testing framework |
-| **NUnit** | E2E testing framework |
-| **Playwright** | Browser automation for E2E tests |
-| **FluentAssertions** | Readable test assertions |
-| **Moq** | Mocking framework |
-| **Coverlet** | Code coverage collection |
-| **ReportGenerator** | Coverage report generation |
+ASP.NET Core Data Protection generates an in-process key ring at startup. On Cloud Run, each new container revision — or any scale-out event — gets a fresh key ring. OAuth correlation cookies (written during `/Account/signin-google` challenge) are encrypted with the key ring; if the responding container's ring differs from the one that wrote the cookie, the callback fails with `Correlation failed`.
 
-### E2E Testing with Playwright
+Fix: `IDataProtectionKeyContext` implemented on `PayGoHubDbContext`, keys persisted via `AddDataProtection().PersistKeysToDbContext<PayGoHubDbContext>()`. The `DataProtectionKeys` table is created by `AddDataProtectionKeys` migration.
+
+### Conditional Google OAuth
+
+`AddGoogle()` throws at startup if `ClientId` is an empty string. OAuth credentials are loaded from GCP Secret Manager at runtime; during CI builds or local dev without credentials set, the app falls back to cookie-only auth. Always gate behind:
+
+```csharp
+var hasGoogleOAuth = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
+if (hasGoogleOAuth) { authBuilder.AddGoogle(...); }
+```
+
+## Testing
 
 ```bash
-# Install Playwright browsers (first time only)
+dotnet test                                          # all tests
+dotnet test --collect:"XPlat Code Coverage"         # with coverage
+dotnet test --filter "Category=Unit"                # unit only
+
+# E2E (requires running app)
 pwsh tests/PayGoHub.E2E/bin/Debug/net10.0/playwright.ps1 install
-
-# Start the application
-docker-compose up -d
-
-# Run E2E tests
 dotnet test tests/PayGoHub.E2E --filter "Category=E2E"
-
-# Run smoke tests only
-dotnet test tests/PayGoHub.E2E --filter "Category=Smoke"
-
-# Run with specific browser
-BROWSER=firefox dotnet test tests/PayGoHub.E2E
-
-# Target different environment
-BASE_URL=https://staging.example.com dotnet test tests/PayGoHub.E2E
-```
-
-### Test Structure
-
-```
-tests/
-├── PayGoHub.Tests/           # Unit & Integration tests
-│   ├── Unit/                 # Unit tests with InMemory DB
-│   └── Integration/          # Integration tests
-└── PayGoHub.E2E/             # End-to-End tests
-    ├── PageObjects/          # Page Object Models
-    └── Tests/                # E2E test classes
 ```
 
 ## Seed Data
 
-The application seeds realistic Kenyan PayGo data on first run:
-- 10 Customers (Jane Kamau, Peter Otieno, etc.)
-- 20 Payments (M-Pesa transactions)
-- 8 Loans (various statuses)
-- 6 Installations (scheduled for today/tomorrow)
-- 10 Devices (SHS-80W to SHS-200W)
-
-## Documentation
-
-See [solarhub-to-paygohub-porting-guide.md](./solarhub-to-paygohub-porting-guide.md) for the comprehensive guide on porting from Rails to .NET.
+On first run, seeds realistic Kenyan PayGo data:
+- 10 Customers · 20 Payments · 8 Loans · 6 Installations · 10 Devices · API clients
 
 ## License
 
