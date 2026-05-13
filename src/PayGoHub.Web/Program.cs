@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -45,6 +46,11 @@ var googleClientId = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
 var googleClientSecret = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_SECRET")
     ?? builder.Configuration["Authentication:Google:ClientSecret"]
     ?? "";
+
+// Persist Data Protection keys in DB so OAuth correlation survives container restarts
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<PayGoHubDbContext>()
+    .SetApplicationName("PayGoHub");
 
 var hasGoogleOAuth = !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret);
 
@@ -167,14 +173,9 @@ using (var scope = app.Services.CreateScope())
         await context.Database.MigrateAsync();
         logger.LogInformation("Database migrations applied successfully.");
     }
-    catch (Npgsql.PostgresException ex) when (ex.SqlState == "42701" || ex.SqlState == "42P07")
-    {
-        // 42701 = column already exists, 42P07 = table already exists
-        logger.LogWarning("Some migrations were skipped (schema already exists): {Message}", ex.Message);
-    }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "An error occurred while migrating the database. Continuing startup.");
     }
 
     // Always try to seed data
