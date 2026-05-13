@@ -39,8 +39,8 @@ info:
     url: https://plugintheworld.com
 
 servers:
-  - url: https://paygohub-web-qa.fly.dev
-    description: QA/Staging (Fly.io)
+  - url: https://paygohub-904401126919.africa-south1.run.app
+    description: QA/Staging (Cloud Run)
   - url: http://localhost:5000
     description: Local Development
 

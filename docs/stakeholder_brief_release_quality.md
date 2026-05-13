@@ -25,8 +25,8 @@
 | **M-Services CI Templates** | [github.com/ericgitangu/m-services-ci](https://github.com/ericgitangu/m-services-ci) |
 | **PayGoHub PoC** | [github.com/ericgitangu/PayGoHub](https://github.com/ericgitangu/PayGoHub) |
 | **GitLab Submodules** | [db-dev/qa (qa_uat branch)](https://git.plugintheworld.com/db-dev/qa/-/tree/qa_uat) |
-| **PayGoHub Live** | [paygohub-web-qa.fly.dev](https://paygohub-web-qa.fly.dev) |
-| **PayGoHub API Docs** | [paygohub-web-qa.fly.dev/api-docs](https://paygohub-web-qa.fly.dev/api-docs) |
+| **PayGoHub Live** | [paygohub-904401126919.africa-south1.run.app](https://paygohub-904401126919.africa-south1.run.app) |
+| **PayGoHub API Docs** | [paygohub-904401126919.africa-south1.run.app/api-docs](https://paygohub-904401126919.africa-south1.run.app/api-docs) |
 | **PayGoHub OpenAPI (GitHub)** | [github.com/ericgitangu/PayGoHub/docs/api](https://github.com/ericgitangu/PayGoHub/blob/master/docs/api/paygohub-openapi.yml) |
 
 ---
@@ -305,7 +305,7 @@ The M-Services ecosystem consists of four interconnected Ruby on Rails applicati
 | API Key Authentication | Middleware | ✅ Implemented |
 | Idempotency Handling | Duplicate detection | ✅ Implemented |
 
-**PoC Deployment:** [paygohub-web-qa.fly.dev](https://paygohub-web-qa.fly.dev)
+**PoC Deployment:** [paygohub-904401126919.africa-south1.run.app](https://paygohub-904401126919.africa-south1.run.app)
 
 ### Centralized CI/CD Pipeline for M-Services
 
